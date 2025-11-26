@@ -16,6 +16,10 @@ const Index = () => {
     setGeneratedLetter(letter);
   };
 
+  const handleLetterUpdate = (newLetter: string) => {
+    setGeneratedLetter(newLetter);
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-50">
@@ -60,7 +64,7 @@ const Index = () => {
                 </p>
               </div>
               
-              <LetterPreview letter={generatedLetter} />
+              <LetterPreview letter={generatedLetter} onLetterUpdate={handleLetterUpdate} />
             </div>
           </section>
         )}
