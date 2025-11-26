@@ -119,11 +119,21 @@ export const LetterPreview = ({ letter, onLetterUpdate }: LetterPreviewProps) =>
       <div className="flex flex-wrap gap-3 justify-between items-center">
         <div className="flex gap-3">
           <Select onValueChange={handleTranslate} disabled={isTranslating}>
-            <SelectTrigger className="w-[180px] shadow-soft">
+            <SelectTrigger className="w-[200px] shadow-soft">
               <Languages className="w-4 h-4 mr-2" />
               <SelectValue placeholder="Translate to..." />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value="Hindi">Hindi</SelectItem>
+              <SelectItem value="Kannada">Kannada</SelectItem>
+              <SelectItem value="Telugu">Telugu</SelectItem>
+              <SelectItem value="Malayalam">Malayalam</SelectItem>
+              <SelectItem value="Tamil">Tamil</SelectItem>
+              <SelectItem value="Bengali">Bengali</SelectItem>
+              <SelectItem value="Marathi">Marathi</SelectItem>
+              <SelectItem value="Gujarati">Gujarati</SelectItem>
+              <SelectItem value="Punjabi">Punjabi</SelectItem>
+              <SelectItem value="Urdu">Urdu</SelectItem>
               <SelectItem value="Spanish">Spanish</SelectItem>
               <SelectItem value="French">French</SelectItem>
               <SelectItem value="German">German</SelectItem>
@@ -133,7 +143,6 @@ export const LetterPreview = ({ letter, onLetterUpdate }: LetterPreviewProps) =>
               <SelectItem value="Japanese">Japanese</SelectItem>
               <SelectItem value="Korean">Korean</SelectItem>
               <SelectItem value="Arabic">Arabic</SelectItem>
-              <SelectItem value="Hindi">Hindi</SelectItem>
               <SelectItem value="Russian">Russian</SelectItem>
             </SelectContent>
           </Select>
