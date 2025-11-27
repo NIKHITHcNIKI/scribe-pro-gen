@@ -11,13 +11,30 @@ serve(async (req) => {
   }
 
   try {
-    const { letterType, senderName, senderAddress, recipientName, recipientAddress, subject, context, letterDate } = await req.json();
+    const { letterType, senderName, senderAddress, recipientName, recipientAddress, subject, context, letterDate, tableData } = await req.json();
 
-    console.log('Generating letter with params:', { letterType, senderName, recipientName, subject, letterDate });
+    console.log('Generating letter with params:', { letterType, senderName, recipientName, subject, letterDate, hasTable: !!tableData });
 
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     if (!LOVABLE_API_KEY) {
       throw new Error('LOVABLE_API_KEY is not configured');
+    }
+
+    // Format table data if provided
+    let tableSection = '';
+    if (tableData && tableData.headers && tableData.rows) {
+      const headerRow = tableData.headers.join(' | ');
+      const separator = tableData.headers.map(() => '---').join(' | ');
+      const dataRows = tableData.rows.map((row: string[]) => row.join(' | ')).join('\n');
+      tableSection = `
+
+Include the following table in the letter body at an appropriate location:
+
+| ${headerRow} |
+| ${separator} |
+${tableData.rows.map((row: string[]) => `| ${row.join(' | ')} |`).join('\n')}
+
+Format this table neatly in the letter using ASCII table formatting with proper alignment.`;
     }
 
     // Create a comprehensive prompt for the AI
@@ -28,7 +45,7 @@ Date: ${letterDate || new Date().toLocaleDateString('en-US', { year: 'numeric', 
 Sender: ${senderName}${senderAddress ? `\nSender Address: ${senderAddress}` : ''}
 Recipient: ${recipientName}${recipientAddress ? `\nRecipient Address: ${recipientAddress}` : ''}
 Subject: ${subject}
-${context ? `Additional Context: ${context}` : ''}
+${context ? `Additional Context: ${context}` : ''}${tableSection}
 
 Requirements:
 1. Use proper business letter format with appropriate salutations and closings
