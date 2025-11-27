@@ -11,9 +11,9 @@ serve(async (req) => {
   }
 
   try {
-    const { letterType, senderName, senderAddress, recipientName, recipientAddress, subject, context } = await req.json();
+    const { letterType, senderName, senderAddress, recipientName, recipientAddress, subject, context, letterDate } = await req.json();
 
-    console.log('Generating letter with params:', { letterType, senderName, recipientName, subject });
+    console.log('Generating letter with params:', { letterType, senderName, recipientName, subject, letterDate });
 
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     if (!LOVABLE_API_KEY) {
@@ -24,6 +24,7 @@ serve(async (req) => {
     const prompt = `You are a professional letter writing expert. Generate a formal, error-free, professional letter with the following details:
 
 Letter Type: ${letterType}
+Date: ${letterDate || new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
 Sender: ${senderName}${senderAddress ? `\nSender Address: ${senderAddress}` : ''}
 Recipient: ${recipientName}${recipientAddress ? `\nRecipient Address: ${recipientAddress}` : ''}
 Subject: ${subject}
@@ -31,7 +32,7 @@ ${context ? `Additional Context: ${context}` : ''}
 
 Requirements:
 1. Use proper business letter format with appropriate salutations and closings
-2. Include today's date at the top
+2. Include the specified date (${letterDate}) at the top of the letter
 3. Make it professional, clear, and concise
 4. Ensure perfect grammar, spelling, and punctuation
 5. Use appropriate tone for the letter type
