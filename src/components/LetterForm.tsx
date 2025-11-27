@@ -1,13 +1,17 @@
 import { useState } from "react";
+import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
-import { Loader2, Sparkles } from "lucide-react";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Loader2, Sparkles, CalendarIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { cn } from "@/lib/utils";
 
 const LETTER_TYPES = [
   { value: "business-proposal", label: "Business Proposal" },
@@ -39,6 +43,7 @@ interface LetterFormProps {
 
 export const LetterForm = ({ onLetterGenerated }: LetterFormProps) => {
   const [isLoading, setIsLoading] = useState(false);
+  const [letterDate, setLetterDate] = useState<Date>(new Date());
   const [formData, setFormData] = useState({
     letterType: "",
     senderName: "",
@@ -66,7 +71,7 @@ export const LetterForm = ({ onLetterGenerated }: LetterFormProps) => {
 
     try {
       const { data, error } = await supabase.functions.invoke('generate-letter', {
-        body: formData
+        body: { ...formData, letterDate: format(letterDate, "MMMM dd, yyyy") }
       });
 
       if (error) throw error;
@@ -96,25 +101,54 @@ export const LetterForm = ({ onLetterGenerated }: LetterFormProps) => {
   return (
     <Card className="p-8 shadow-medium">
       <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="space-y-2">
-          <Label htmlFor="letterType" className="text-base font-semibold">
-            Letter Type *
-          </Label>
-          <Select
-            value={formData.letterType}
-            onValueChange={(value) => setFormData({ ...formData, letterType: value })}
-          >
-            <SelectTrigger id="letterType" className="h-12">
-              <SelectValue placeholder="Select letter type" />
-            </SelectTrigger>
-            <SelectContent className="max-h-[300px]">
-              {LETTER_TYPES.map((type) => (
-                <SelectItem key={type.value} value={type.value}>
-                  {type.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        <div className="grid md:grid-cols-2 gap-6">
+          <div className="space-y-2">
+            <Label htmlFor="letterType" className="text-base font-semibold">
+              Letter Type *
+            </Label>
+            <Select
+              value={formData.letterType}
+              onValueChange={(value) => setFormData({ ...formData, letterType: value })}
+            >
+              <SelectTrigger id="letterType" className="h-12">
+                <SelectValue placeholder="Select letter type" />
+              </SelectTrigger>
+              <SelectContent className="max-h-[300px]">
+                {LETTER_TYPES.map((type) => (
+                  <SelectItem key={type.value} value={type.value}>
+                    {type.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-base font-semibold">Letter Date *</Label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    "w-full h-12 justify-start text-left font-normal",
+                    !letterDate && "text-muted-foreground"
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {letterDate ? format(letterDate, "PPP") : <span>Pick a date</span>}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={letterDate}
+                  onSelect={(date) => date && setLetterDate(date)}
+                  initialFocus
+                  className="pointer-events-auto"
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
         </div>
 
         <div className="grid md:grid-cols-2 gap-6">
