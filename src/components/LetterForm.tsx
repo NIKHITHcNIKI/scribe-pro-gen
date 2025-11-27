@@ -12,6 +12,7 @@ import { Loader2, Sparkles, CalendarIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
+import { TableBuilder, TableData } from "./TableBuilder";
 
 const LETTER_TYPES = [
   { value: "business-proposal", label: "Business Proposal" },
@@ -44,6 +45,7 @@ interface LetterFormProps {
 export const LetterForm = ({ onLetterGenerated }: LetterFormProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const [letterDate, setLetterDate] = useState<Date>(new Date());
+  const [tableData, setTableData] = useState<TableData | null>(null);
   const [formData, setFormData] = useState({
     letterType: "",
     senderName: "",
@@ -71,7 +73,7 @@ export const LetterForm = ({ onLetterGenerated }: LetterFormProps) => {
 
     try {
       const { data, error } = await supabase.functions.invoke('generate-letter', {
-        body: { ...formData, letterDate: format(letterDate, "MMMM dd, yyyy") }
+        body: { ...formData, letterDate: format(letterDate, "MMMM dd, yyyy"), tableData }
       });
 
       if (error) throw error;
@@ -234,6 +236,8 @@ export const LetterForm = ({ onLetterGenerated }: LetterFormProps) => {
             The more context you provide, the better the AI can tailor your letter
           </p>
         </div>
+
+        <TableBuilder onTableChange={setTableData} />
 
         <Button
           type="submit"
