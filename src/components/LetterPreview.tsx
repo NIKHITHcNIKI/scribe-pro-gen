@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Download, Copy, CheckCheck, Edit, Save, Languages, Share2 } from "lucide-react";
+import { Download, Copy, CheckCheck, Edit, Save, Languages, Share2, RefreshCw } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Textarea } from "@/components/ui/textarea";
@@ -12,9 +12,10 @@ import jsPDF from "jspdf";
 interface LetterPreviewProps {
   letter: string;
   onLetterUpdate?: (newLetter: string) => void;
+  onReset?: () => void;
 }
 
-export const LetterPreview = ({ letter, onLetterUpdate }: LetterPreviewProps) => {
+export const LetterPreview = ({ letter, onLetterUpdate, onReset }: LetterPreviewProps) => {
   const [copied, setCopied] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editedLetter, setEditedLetter] = useState(letter);
@@ -165,6 +166,7 @@ export const LetterPreview = ({ letter, onLetterUpdate }: LetterPreviewProps) =>
               <SelectValue placeholder="Translate to..." />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value="English">English</SelectItem>
               <SelectItem value="Hindi">Hindi</SelectItem>
               <SelectItem value="Kannada">Kannada</SelectItem>
               <SelectItem value="Telugu">Telugu</SelectItem>
@@ -190,6 +192,17 @@ export const LetterPreview = ({ letter, onLetterUpdate }: LetterPreviewProps) =>
         </div>
 
         <div className="flex gap-3">
+          {onReset && (
+            <Button
+              variant="outline"
+              onClick={onReset}
+              className="shadow-soft hover:shadow-medium transition-all"
+            >
+              <RefreshCw className="w-4 h-4 mr-2" />
+              New Letter
+            </Button>
+          )}
+          
           {isEditing ? (
             <Button
               onClick={handleSave}
