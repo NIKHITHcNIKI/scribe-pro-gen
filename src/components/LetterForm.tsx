@@ -14,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { TableBuilder, TableData } from "./TableBuilder";
 import { FileAttachment, AttachedFile } from "./FileAttachment";
+import { LetterTemplates, LetterTemplate } from "./LetterTemplates";
 
 const LETTER_TYPES = [
   { value: "business-proposal", label: "Business Proposal" },
@@ -48,6 +49,7 @@ export const LetterForm = ({ onLetterGenerated }: LetterFormProps) => {
   const [letterDate, setLetterDate] = useState<Date>(new Date());
   const [tableData, setTableData] = useState<TableData | null>(null);
   const [attachedFiles, setAttachedFiles] = useState<AttachedFile[]>([]);
+  const [letterTemplate, setLetterTemplate] = useState<LetterTemplate | null>(null);
   const [formData, setFormData] = useState({
     letterType: "",
     senderName: "",
@@ -79,7 +81,8 @@ export const LetterForm = ({ onLetterGenerated }: LetterFormProps) => {
           ...formData, 
           letterDate: format(letterDate, "MMMM dd, yyyy"), 
           tableData,
-          attachments: attachedFiles.map(f => ({ name: f.name, type: f.type }))
+          attachments: attachedFiles.map(f => ({ name: f.name, type: f.type })),
+          letterTemplate
         }
       });
 
@@ -110,6 +113,8 @@ export const LetterForm = ({ onLetterGenerated }: LetterFormProps) => {
   return (
     <Card className="p-8 shadow-medium">
       <form onSubmit={handleSubmit} className="space-y-6">
+        <LetterTemplates onTemplateChange={setLetterTemplate} />
+
         <div className="grid md:grid-cols-2 gap-6">
           <div className="space-y-2">
             <Label htmlFor="letterType" className="text-base font-semibold">
