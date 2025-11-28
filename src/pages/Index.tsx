@@ -20,6 +20,11 @@ const Index = () => {
     setGeneratedLetter(newLetter);
   };
 
+  const handleReset = () => {
+    setGeneratedLetter("");
+    formRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-50">
@@ -64,7 +69,7 @@ const Index = () => {
                 </p>
               </div>
               
-              <LetterPreview letter={generatedLetter} onLetterUpdate={handleLetterUpdate} />
+              <LetterPreview letter={generatedLetter} onLetterUpdate={handleLetterUpdate} onReset={handleReset} />
             </div>
           </section>
         )}
