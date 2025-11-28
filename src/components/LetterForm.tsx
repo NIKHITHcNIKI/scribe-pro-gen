@@ -13,6 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { TableBuilder, TableData } from "./TableBuilder";
+import { FileAttachment, AttachedFile } from "./FileAttachment";
 
 const LETTER_TYPES = [
   { value: "business-proposal", label: "Business Proposal" },
@@ -46,6 +47,7 @@ export const LetterForm = ({ onLetterGenerated }: LetterFormProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const [letterDate, setLetterDate] = useState<Date>(new Date());
   const [tableData, setTableData] = useState<TableData | null>(null);
+  const [attachedFiles, setAttachedFiles] = useState<AttachedFile[]>([]);
   const [formData, setFormData] = useState({
     letterType: "",
     senderName: "",
@@ -73,7 +75,12 @@ export const LetterForm = ({ onLetterGenerated }: LetterFormProps) => {
 
     try {
       const { data, error } = await supabase.functions.invoke('generate-letter', {
-        body: { ...formData, letterDate: format(letterDate, "MMMM dd, yyyy"), tableData }
+        body: { 
+          ...formData, 
+          letterDate: format(letterDate, "MMMM dd, yyyy"), 
+          tableData,
+          attachments: attachedFiles.map(f => ({ name: f.name, type: f.type }))
+        }
       });
 
       if (error) throw error;
@@ -238,6 +245,14 @@ export const LetterForm = ({ onLetterGenerated }: LetterFormProps) => {
         </div>
 
         <TableBuilder onTableChange={setTableData} />
+
+        <div className="space-y-2">
+          <Label className="text-base font-semibold">Attachments</Label>
+          <FileAttachment onFilesChange={setAttachedFiles} />
+          <p className="text-sm text-muted-foreground">
+            Attach supporting documents to reference in your letter
+          </p>
+        </div>
 
         <Button
           type="submit"
