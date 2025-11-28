@@ -11,9 +11,9 @@ serve(async (req) => {
   }
 
   try {
-    const { letterType, senderName, senderAddress, recipientName, recipientAddress, subject, context, letterDate, tableData, attachments } = await req.json();
+    const { letterType, senderName, senderAddress, recipientName, recipientAddress, subject, context, letterDate, tableData, attachments, letterTemplate } = await req.json();
 
-    console.log('Generating letter with params:', { letterType, senderName, recipientName, subject, letterDate, hasTable: !!tableData, attachmentsCount: attachments?.length || 0 });
+    console.log('Generating letter with params:', { letterType, senderName, recipientName, subject, letterDate, hasTable: !!tableData, attachmentsCount: attachments?.length || 0, hasTemplate: !!letterTemplate });
 
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     if (!LOVABLE_API_KEY) {
@@ -49,6 +49,24 @@ ${attachmentsList}
 Include an "Enclosures:" or "Attachments:" section at the end of the letter listing these files.`;
     }
 
+    // Format letterhead template if provided
+    let letterheadSection = '';
+    if (letterTemplate && letterTemplate.organizationName) {
+      letterheadSection = `
+
+IMPORTANT: This letter must include a professional letterhead at the very top. Format the letterhead as follows:
+
+================================================================================
+                        ${letterTemplate.organizationName.toUpperCase()}
+${letterTemplate.tagline ? `                        "${letterTemplate.tagline}"` : ''}
+
+${letterTemplate.address}
+${letterTemplate.phone ? `Phone: ${letterTemplate.phone}` : ''}${letterTemplate.email ? `  |  Email: ${letterTemplate.email}` : ''}${letterTemplate.website ? `  |  Web: ${letterTemplate.website}` : ''}
+================================================================================
+
+The letterhead should be centered and visually distinct from the rest of the letter. Include a separator line after the letterhead before the date.`;
+    }
+
     // Create a comprehensive prompt for the AI
     const prompt = `You are a professional letter writing expert. Generate a formal, error-free, professional letter with the following details:
 
@@ -57,7 +75,7 @@ Date: ${letterDate || new Date().toLocaleDateString('en-US', { year: 'numeric', 
 Sender: ${senderName}${senderAddress ? `\nSender Address: ${senderAddress}` : ''}
 Recipient: ${recipientName}${recipientAddress ? `\nRecipient Address: ${recipientAddress}` : ''}
 Subject: ${subject}
-${context ? `Additional Context: ${context}` : ''}${tableSection}${attachmentsSection}
+${context ? `Additional Context: ${context}` : ''}${tableSection}${attachmentsSection}${letterheadSection}
 
 Requirements:
 1. Use proper business letter format with appropriate salutations and closings
