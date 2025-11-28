@@ -11,9 +11,9 @@ serve(async (req) => {
   }
 
   try {
-    const { letterType, senderName, senderAddress, recipientName, recipientAddress, subject, context, letterDate, tableData } = await req.json();
+    const { letterType, senderName, senderAddress, recipientName, recipientAddress, subject, context, letterDate, tableData, attachments } = await req.json();
 
-    console.log('Generating letter with params:', { letterType, senderName, recipientName, subject, letterDate, hasTable: !!tableData });
+    console.log('Generating letter with params:', { letterType, senderName, recipientName, subject, letterDate, hasTable: !!tableData, attachmentsCount: attachments?.length || 0 });
 
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     if (!LOVABLE_API_KEY) {
@@ -37,6 +37,18 @@ ${tableData.rows.map((row: string[]) => `| ${row.join(' | ')} |`).join('\n')}
 Format this table neatly in the letter using ASCII table formatting with proper alignment.`;
     }
 
+    // Format attachments info if provided
+    let attachmentsSection = '';
+    if (attachments && attachments.length > 0) {
+      const attachmentsList = attachments.map((a: { name: string; type: string }) => `- ${a.name}`).join('\n');
+      attachmentsSection = `
+
+The letter should mention that the following documents are attached:
+${attachmentsList}
+
+Include an "Enclosures:" or "Attachments:" section at the end of the letter listing these files.`;
+    }
+
     // Create a comprehensive prompt for the AI
     const prompt = `You are a professional letter writing expert. Generate a formal, error-free, professional letter with the following details:
 
@@ -45,7 +57,7 @@ Date: ${letterDate || new Date().toLocaleDateString('en-US', { year: 'numeric', 
 Sender: ${senderName}${senderAddress ? `\nSender Address: ${senderAddress}` : ''}
 Recipient: ${recipientName}${recipientAddress ? `\nRecipient Address: ${recipientAddress}` : ''}
 Subject: ${subject}
-${context ? `Additional Context: ${context}` : ''}${tableSection}
+${context ? `Additional Context: ${context}` : ''}${tableSection}${attachmentsSection}
 
 Requirements:
 1. Use proper business letter format with appropriate salutations and closings
