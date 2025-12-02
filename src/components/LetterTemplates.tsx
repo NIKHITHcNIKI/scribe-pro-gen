@@ -9,6 +9,8 @@ import { Building2, GraduationCap, Briefcase, User, Hospital, Scale, Landmark, U
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
+export type LetterheadStyle = "banner" | "side-by-side" | "centered" | "minimal" | "classic";
+
 export interface LetterTemplate {
   id: string;
   name: string;
@@ -20,6 +22,7 @@ export interface LetterTemplate {
   phone?: string;
   email?: string;
   website?: string;
+  letterheadStyle: LetterheadStyle;
 }
 
 const PRESET_TEMPLATES: { id: string; name: string; icon: React.ReactNode; description: string; defaults: Partial<LetterTemplate> }[] = [
@@ -134,6 +137,7 @@ export const LetterTemplates = ({ onTemplateChange }: LetterTemplatesProps) => {
     type: "custom",
     organizationName: "",
     address: "",
+    letterheadStyle: "banner",
   });
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -208,6 +212,7 @@ export const LetterTemplates = ({ onTemplateChange }: LetterTemplatesProps) => {
         phone: preset.defaults.phone,
         email: preset.defaults.email,
         website: preset.defaults.website,
+        letterheadStyle: customTemplate.letterheadStyle,
       };
       setCustomTemplate(template);
       onTemplateChange(template);
@@ -260,6 +265,34 @@ export const LetterTemplates = ({ onTemplateChange }: LetterTemplatesProps) => {
             {PRESET_TEMPLATES.find(t => t.id === selectedTemplate)?.icon}
             Customize Letterhead
           </h4>
+
+          {/* Letterhead Style Selection */}
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">Letterhead Style</Label>
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+              {[
+                { value: "banner", label: "Banner", desc: "Full-width header" },
+                { value: "side-by-side", label: "Side by Side", desc: "Logo left, text right" },
+                { value: "centered", label: "Centered", desc: "All centered" },
+                { value: "minimal", label: "Minimal", desc: "Simple & clean" },
+                { value: "classic", label: "Classic", desc: "Traditional style" },
+              ].map((style) => (
+                <button
+                  key={style.value}
+                  type="button"
+                  onClick={() => handleCustomChange("letterheadStyle", style.value)}
+                  className={`p-3 rounded-lg border-2 text-left transition-all ${
+                    customTemplate.letterheadStyle === style.value
+                      ? "border-primary bg-primary/5"
+                      : "border-muted hover:border-primary/50"
+                  }`}
+                >
+                  <span className="text-sm font-medium block">{style.label}</span>
+                  <span className="text-xs text-muted-foreground">{style.desc}</span>
+                </button>
+              ))}
+            </div>
+          </div>
           
           {/* Logo Upload */}
           <div className="space-y-2">
