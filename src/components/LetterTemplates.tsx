@@ -1,10 +1,13 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Building2, GraduationCap, Briefcase, User, Hospital, Scale, Landmark } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Building2, GraduationCap, Briefcase, User, Hospital, Scale, Landmark, Upload, X } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 export interface LetterTemplate {
   id: string;
@@ -132,6 +135,58 @@ export const LetterTemplates = ({ onTemplateChange }: LetterTemplatesProps) => {
     organizationName: "",
     address: "",
   });
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const { toast } = useToast();
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast({ title: "Invalid file", description: "Please upload an image file", variant: "destructive" });
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast({ title: "File too large", description: "Logo must be under 5MB", variant: "destructive" });
+      return;
+    }
+
+    setIsUploading(true);
+    try {
+      const fileName = `logo-${Date.now()}-${file.name}`;
+      const { data, error } = await supabase.storage
+        .from('letter-attachments')
+        .upload(fileName, file);
+
+      if (error) throw error;
+
+      const { data: urlData } = supabase.storage
+        .from('letter-attachments')
+        .getPublicUrl(data.path);
+
+      const updated = { ...customTemplate, logo: urlData.publicUrl };
+      setCustomTemplate(updated);
+      if (selectedTemplate !== "none") {
+        onTemplateChange(updated);
+      }
+      toast({ title: "Logo uploaded", description: "Your logo has been added" });
+    } catch (error) {
+      toast({ title: "Upload failed", description: "Could not upload logo", variant: "destructive" });
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  const removeLogo = () => {
+    const updated = { ...customTemplate, logo: undefined };
+    setCustomTemplate(updated);
+    if (selectedTemplate !== "none") {
+      onTemplateChange(updated);
+    }
+  };
 
   const handleTemplateSelect = (templateId: string) => {
     setSelectedTemplate(templateId);
@@ -206,6 +261,49 @@ export const LetterTemplates = ({ onTemplateChange }: LetterTemplatesProps) => {
             Customize Letterhead
           </h4>
           
+          {/* Logo Upload */}
+          <div className="space-y-2">
+            <Label>Organization Logo</Label>
+            <div className="flex items-center gap-4">
+              {customTemplate.logo ? (
+                <div className="relative">
+                  <img 
+                    src={customTemplate.logo} 
+                    alt="Logo" 
+                    className="h-16 w-auto object-contain rounded border"
+                  />
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    size="icon"
+                    className="absolute -top-2 -right-2 h-6 w-6"
+                    onClick={removeLogo}
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                </div>
+              ) : (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isUploading}
+                  className="gap-2"
+                >
+                  <Upload className="h-4 w-4" />
+                  {isUploading ? "Uploading..." : "Upload Logo"}
+                </Button>
+              )}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleLogoUpload}
+                className="hidden"
+              />
+            </div>
+          </div>
+
           <div className="grid md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="orgName">Organization Name *</Label>
@@ -276,6 +374,13 @@ export const LetterTemplates = ({ onTemplateChange }: LetterTemplatesProps) => {
           <div className="mt-4 p-4 bg-muted/50 rounded-lg">
             <p className="text-xs text-muted-foreground mb-2">Letterhead Preview:</p>
             <div className="text-center border-b-2 border-primary/30 pb-4">
+              {customTemplate.logo && (
+                <img 
+                  src={customTemplate.logo} 
+                  alt="Logo" 
+                  className="h-12 w-auto mx-auto mb-2 object-contain"
+                />
+              )}
               <h3 className="text-lg font-bold text-primary">{customTemplate.organizationName || "Organization Name"}</h3>
               {customTemplate.tagline && (
                 <p className="text-sm text-muted-foreground italic">{customTemplate.tagline}</p>
