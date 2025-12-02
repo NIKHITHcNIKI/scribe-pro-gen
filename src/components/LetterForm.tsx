@@ -41,7 +41,7 @@ const LETTER_TYPES = [
 ];
 
 interface LetterFormProps {
-  onLetterGenerated: (letter: string) => void;
+  onLetterGenerated: (letter: string, template: LetterTemplate | null) => void;
 }
 
 export const LetterForm = ({ onLetterGenerated }: LetterFormProps) => {
@@ -92,7 +92,7 @@ export const LetterForm = ({ onLetterGenerated }: LetterFormProps) => {
         throw new Error(data.error);
       }
 
-      onLetterGenerated(data.letter);
+      onLetterGenerated(data.letter, letterTemplate);
       
       toast({
         title: "Letter Generated!",

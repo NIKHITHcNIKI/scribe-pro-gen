@@ -3,17 +3,20 @@ import { Hero } from "@/components/Hero";
 import { LetterForm } from "@/components/LetterForm";
 import { LetterPreview } from "@/components/LetterPreview";
 import { FileText } from "lucide-react";
+import { LetterTemplate } from "@/components/LetterTemplates";
 
 const Index = () => {
   const [generatedLetter, setGeneratedLetter] = useState<string>("");
+  const [letterTemplate, setLetterTemplate] = useState<LetterTemplate | null>(null);
   const formRef = useRef<HTMLDivElement>(null);
 
   const handleGetStarted = () => {
     formRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
-  const handleLetterGenerated = (letter: string) => {
+  const handleLetterGenerated = (letter: string, template: LetterTemplate | null) => {
     setGeneratedLetter(letter);
+    setLetterTemplate(template);
   };
 
   const handleLetterUpdate = (newLetter: string) => {
@@ -22,6 +25,7 @@ const Index = () => {
 
   const handleReset = () => {
     setGeneratedLetter("");
+    setLetterTemplate(null);
     formRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
@@ -69,7 +73,7 @@ const Index = () => {
                 </p>
               </div>
               
-              <LetterPreview letter={generatedLetter} onLetterUpdate={handleLetterUpdate} onReset={handleReset} />
+              <LetterPreview letter={generatedLetter} letterTemplate={letterTemplate} onLetterUpdate={handleLetterUpdate} onReset={handleReset} />
             </div>
           </section>
         )}

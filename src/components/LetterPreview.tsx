@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Download, Copy, CheckCheck, Edit, Save, Languages, Share2, RefreshCw } from "lucide-react";
+import { Download, Copy, CheckCheck, Edit, Save, Languages, Share2, RefreshCw, Phone, Mail, Globe } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Textarea } from "@/components/ui/textarea";
@@ -8,14 +8,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { supabase } from "@/integrations/supabase/client";
 import jsPDF from "jspdf";
+import { LetterTemplate } from "@/components/LetterTemplates";
 
 interface LetterPreviewProps {
   letter: string;
+  letterTemplate?: LetterTemplate | null;
   onLetterUpdate?: (newLetter: string) => void;
   onReset?: () => void;
 }
 
-export const LetterPreview = ({ letter, onLetterUpdate, onReset }: LetterPreviewProps) => {
+export const LetterPreview = ({ letter, letterTemplate, onLetterUpdate, onReset }: LetterPreviewProps) => {
   const [copied, setCopied] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editedLetter, setEditedLetter] = useState(letter);
@@ -327,20 +329,84 @@ export const LetterPreview = ({ letter, onLetterUpdate, onReset }: LetterPreview
         </div>
       </div>
       
-      <Card className="p-8 shadow-medium">
-        {isEditing ? (
-          <Textarea
-            value={editedLetter}
-            onChange={(e) => setEditedLetter(e.target.value)}
-            className="min-h-[500px] font-serif text-base leading-relaxed"
-          />
-        ) : (
-          <div className="prose prose-slate max-w-none">
-            <pre className="whitespace-pre-wrap font-serif text-base leading-relaxed text-foreground">
-              {editedLetter}
-            </pre>
+      <Card className="shadow-medium overflow-hidden">
+        {/* Letterhead Header */}
+        {letterTemplate && letterTemplate.organizationName && (
+          <div className="bg-gradient-to-r from-primary via-primary/90 to-primary/80 text-primary-foreground">
+            <div className="px-8 py-6">
+              <div className="flex items-center gap-6">
+                {letterTemplate.logo && (
+                  <div className="flex-shrink-0">
+                    <img 
+                      src={letterTemplate.logo} 
+                      alt={letterTemplate.organizationName}
+                      className="h-20 w-auto object-contain bg-white/10 rounded-lg p-2"
+                    />
+                  </div>
+                )}
+                <div className="flex-1 text-center">
+                  {letterTemplate.tagline && (
+                    <p className="text-xs uppercase tracking-widest opacity-80 mb-1">
+                      {letterTemplate.tagline}
+                    </p>
+                  )}
+                  <h2 className="text-2xl md:text-3xl font-bold tracking-wide uppercase">
+                    {letterTemplate.organizationName}
+                  </h2>
+                </div>
+                {letterTemplate.logo && <div className="w-20 flex-shrink-0" />}
+              </div>
+            </div>
+            
+            {/* Contact Info Bar */}
+            <div className="bg-primary-foreground/10 px-8 py-3">
+              <div className="flex flex-wrap justify-center items-center gap-x-6 gap-y-2 text-xs md:text-sm">
+                {letterTemplate.address && (
+                  <span className="opacity-90">
+                    {letterTemplate.address.split('\n').join(' • ')}
+                  </span>
+                )}
+              </div>
+              <div className="flex flex-wrap justify-center items-center gap-x-6 gap-y-2 text-xs mt-2">
+                {letterTemplate.phone && (
+                  <span className="flex items-center gap-1 opacity-90">
+                    <Phone className="w-3 h-3" />
+                    {letterTemplate.phone}
+                  </span>
+                )}
+                {letterTemplate.email && (
+                  <span className="flex items-center gap-1 opacity-90">
+                    <Mail className="w-3 h-3" />
+                    {letterTemplate.email}
+                  </span>
+                )}
+                {letterTemplate.website && (
+                  <span className="flex items-center gap-1 opacity-90">
+                    <Globe className="w-3 h-3" />
+                    {letterTemplate.website}
+                  </span>
+                )}
+              </div>
+            </div>
           </div>
         )}
+        
+        {/* Letter Content */}
+        <div className="p-8">
+          {isEditing ? (
+            <Textarea
+              value={editedLetter}
+              onChange={(e) => setEditedLetter(e.target.value)}
+              className="min-h-[500px] font-serif text-base leading-relaxed"
+            />
+          ) : (
+            <div className="prose prose-slate max-w-none">
+              <pre className="whitespace-pre-wrap font-serif text-base leading-relaxed text-foreground">
+                {editedLetter}
+              </pre>
+            </div>
+          )}
+        </div>
       </Card>
     </div>
   );
