@@ -23,6 +23,10 @@ const Index = () => {
     setGeneratedLetter(newLetter);
   };
 
+  const handleTemplateUpdate = (template: LetterTemplate) => {
+    setLetterTemplate(template);
+  };
+
   const handleReset = () => {
     setGeneratedLetter("");
     setLetterTemplate(null);
@@ -73,7 +77,13 @@ const Index = () => {
                 </p>
               </div>
               
-              <LetterPreview letter={generatedLetter} letterTemplate={letterTemplate} onLetterUpdate={handleLetterUpdate} onReset={handleReset} />
+              <LetterPreview 
+                letter={generatedLetter} 
+                letterTemplate={letterTemplate} 
+                onLetterUpdate={handleLetterUpdate} 
+                onTemplateUpdate={handleTemplateUpdate}
+                onReset={handleReset} 
+              />
             </div>
           </section>
         )}

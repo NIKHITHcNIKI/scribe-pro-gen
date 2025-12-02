@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Download, Copy, CheckCheck, Edit, Save, Languages, Share2, RefreshCw, Phone, Mail, Globe } from "lucide-react";
-import { useState } from "react";
+import { Download, Copy, CheckCheck, Edit, Save, Languages, Share2, RefreshCw, FileEdit } from "lucide-react";
+import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -9,20 +9,28 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { supabase } from "@/integrations/supabase/client";
 import jsPDF from "jspdf";
 import { LetterTemplate } from "@/components/LetterTemplates";
+import { LetterheadRenderer } from "@/components/LetterheadRenderer";
 
 interface LetterPreviewProps {
   letter: string;
   letterTemplate?: LetterTemplate | null;
   onLetterUpdate?: (newLetter: string) => void;
+  onTemplateUpdate?: (template: LetterTemplate) => void;
   onReset?: () => void;
 }
 
-export const LetterPreview = ({ letter, letterTemplate, onLetterUpdate, onReset }: LetterPreviewProps) => {
+export const LetterPreview = ({ letter, letterTemplate, onLetterUpdate, onTemplateUpdate, onReset }: LetterPreviewProps) => {
   const [copied, setCopied] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [isEditingHeader, setIsEditingHeader] = useState(false);
   const [editedLetter, setEditedLetter] = useState(letter);
+  const [editedTemplate, setEditedTemplate] = useState<LetterTemplate | null>(letterTemplate || null);
   const [isTranslating, setIsTranslating] = useState(false);
   const { toast } = useToast();
+
+  useEffect(() => {
+    setEditedTemplate(letterTemplate || null);
+  }, [letterTemplate]);
 
   const handleCopy = async () => {
     await navigator.clipboard.writeText(editedLetter);
@@ -40,13 +48,21 @@ export const LetterPreview = ({ letter, letterTemplate, onLetterUpdate, onReset 
 
   const handleSave = () => {
     setIsEditing(false);
+    setIsEditingHeader(false);
     if (onLetterUpdate) {
       onLetterUpdate(editedLetter);
+    }
+    if (onTemplateUpdate && editedTemplate) {
+      onTemplateUpdate(editedTemplate);
     }
     toast({
       title: "Saved!",
       description: "Your changes have been saved",
     });
+  };
+
+  const handleHeaderTemplateChange = (template: LetterTemplate) => {
+    setEditedTemplate(template);
   };
 
   const handleTranslate = async (language: string) => {
@@ -193,7 +209,7 @@ export const LetterPreview = ({ letter, letterTemplate, onLetterUpdate, onReset 
           </Select>
         </div>
 
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-3">
           {onReset && (
             <Button
               variant="outline"
@@ -203,6 +219,28 @@ export const LetterPreview = ({ letter, letterTemplate, onLetterUpdate, onReset 
               <RefreshCw className="w-4 h-4 mr-2" />
               New Letter
             </Button>
+          )}
+
+          {editedTemplate && editedTemplate.organizationName && (
+            isEditingHeader ? (
+              <Button
+                onClick={handleSave}
+                variant="secondary"
+                className="shadow-soft hover:shadow-medium transition-all"
+              >
+                <Save className="w-4 h-4 mr-2" />
+                Save Header
+              </Button>
+            ) : (
+              <Button
+                variant="outline"
+                onClick={() => setIsEditingHeader(true)}
+                className="shadow-soft hover:shadow-medium transition-all"
+              >
+                <FileEdit className="w-4 h-4 mr-2" />
+                Edit Header
+              </Button>
+            )
           )}
           
           {isEditing ? (
@@ -220,7 +258,7 @@ export const LetterPreview = ({ letter, letterTemplate, onLetterUpdate, onReset 
               className="shadow-soft hover:shadow-medium transition-all"
             >
               <Edit className="w-4 h-4 mr-2" />
-              Edit
+              Edit Letter
             </Button>
           )}
           
@@ -331,63 +369,20 @@ export const LetterPreview = ({ letter, letterTemplate, onLetterUpdate, onReset 
       
       <Card className="shadow-medium overflow-hidden">
         {/* Letterhead Header */}
-        {letterTemplate && letterTemplate.organizationName && (
-          <div className="bg-gradient-to-r from-primary via-primary/90 to-primary/80 text-primary-foreground">
-            <div className="px-8 py-6">
-              <div className="flex items-center gap-6">
-                {letterTemplate.logo && (
-                  <div className="flex-shrink-0">
-                    <img 
-                      src={letterTemplate.logo} 
-                      alt={letterTemplate.organizationName}
-                      className="h-20 w-auto object-contain bg-white/10 rounded-lg p-2"
-                    />
-                  </div>
-                )}
-                <div className="flex-1 text-center">
-                  {letterTemplate.tagline && (
-                    <p className="text-xs uppercase tracking-widest opacity-80 mb-1">
-                      {letterTemplate.tagline}
-                    </p>
-                  )}
-                  <h2 className="text-2xl md:text-3xl font-bold tracking-wide uppercase">
-                    {letterTemplate.organizationName}
-                  </h2>
-                </div>
-                {letterTemplate.logo && <div className="w-20 flex-shrink-0" />}
+        {editedTemplate && editedTemplate.organizationName && (
+          <div className="relative">
+            {isEditingHeader && (
+              <div className="absolute top-2 right-2 z-10">
+                <span className="text-xs bg-primary text-primary-foreground px-2 py-1 rounded">
+                  Editing Header - Click fields to edit
+                </span>
               </div>
-            </div>
-            
-            {/* Contact Info Bar */}
-            <div className="bg-primary-foreground/10 px-8 py-3">
-              <div className="flex flex-wrap justify-center items-center gap-x-6 gap-y-2 text-xs md:text-sm">
-                {letterTemplate.address && (
-                  <span className="opacity-90">
-                    {letterTemplate.address.split('\n').join(' • ')}
-                  </span>
-                )}
-              </div>
-              <div className="flex flex-wrap justify-center items-center gap-x-6 gap-y-2 text-xs mt-2">
-                {letterTemplate.phone && (
-                  <span className="flex items-center gap-1 opacity-90">
-                    <Phone className="w-3 h-3" />
-                    {letterTemplate.phone}
-                  </span>
-                )}
-                {letterTemplate.email && (
-                  <span className="flex items-center gap-1 opacity-90">
-                    <Mail className="w-3 h-3" />
-                    {letterTemplate.email}
-                  </span>
-                )}
-                {letterTemplate.website && (
-                  <span className="flex items-center gap-1 opacity-90">
-                    <Globe className="w-3 h-3" />
-                    {letterTemplate.website}
-                  </span>
-                )}
-              </div>
-            </div>
+            )}
+            <LetterheadRenderer 
+              template={editedTemplate} 
+              isEditing={isEditingHeader}
+              onTemplateChange={handleHeaderTemplateChange}
+            />
           </div>
         )}
         
