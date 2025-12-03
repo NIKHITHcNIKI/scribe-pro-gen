@@ -62,10 +62,28 @@ export const LetterheadRenderer = ({ template, isEditing, onTemplateChange }: Le
     </div>
   );
 
+  // Helper to determine text color based on background
+  const getContrastColor = (hexColor?: string) => {
+    if (!hexColor) return undefined;
+    const hex = hexColor.replace('#', '');
+    const r = parseInt(hex.substr(0, 2), 16);
+    const g = parseInt(hex.substr(2, 2), 16);
+    const b = parseInt(hex.substr(4, 2), 16);
+    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+    return luminance > 0.5 ? '#1f2937' : '#ffffff';
+  };
+
+  const headerBgStyle = template.headerBackgroundColor 
+    ? { backgroundColor: template.headerBackgroundColor, color: getContrastColor(template.headerBackgroundColor) }
+    : {};
+
   // Banner Style - Full width gradient header
   if (template.letterheadStyle === "banner") {
     return (
-      <div className="bg-gradient-to-r from-primary via-primary/90 to-primary/80 text-primary-foreground">
+      <div 
+        className={template.headerBackgroundColor ? "" : "bg-gradient-to-r from-primary via-primary/90 to-primary/80 text-primary-foreground"}
+        style={headerBgStyle}
+      >
         <div className="px-8 py-6">
           <div className="flex items-center gap-6">
             {template.logo && (
@@ -119,7 +137,7 @@ export const LetterheadRenderer = ({ template, isEditing, onTemplateChange }: Le
   // Side by Side Style - Logo left, text right
   if (template.letterheadStyle === "side-by-side") {
     return (
-      <div className="border-b-4 border-primary">
+      <div className="border-b-4 border-primary" style={headerBgStyle}>
         <div className="px-8 py-6 flex items-center gap-6">
           {template.logo && (
             <div className="flex-shrink-0">
@@ -154,7 +172,7 @@ export const LetterheadRenderer = ({ template, isEditing, onTemplateChange }: Le
   // Centered Style - Everything centered
   if (template.letterheadStyle === "centered") {
     return (
-      <div className="border-b-2 border-primary/20">
+      <div className="border-b-2 border-primary/20" style={headerBgStyle}>
         <div className="px-8 py-8 text-center">
           {template.logo && (
             <div className="flex justify-center mb-4">
@@ -189,7 +207,7 @@ export const LetterheadRenderer = ({ template, isEditing, onTemplateChange }: Le
   // Minimal Style - Clean and simple
   if (template.letterheadStyle === "minimal") {
     return (
-      <div className="border-b border-border">
+      <div className="border-b border-border" style={headerBgStyle}>
         <div className="px-8 py-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
             {template.logo && (
@@ -212,7 +230,7 @@ export const LetterheadRenderer = ({ template, isEditing, onTemplateChange }: Le
   // Classic Style - Traditional formal letterhead
   if (template.letterheadStyle === "classic") {
     return (
-      <div className="border-b-2 border-double border-primary/40">
+      <div className="border-b-2 border-double border-primary/40" style={headerBgStyle}>
         <div className="px-8 py-6">
           <div className="flex items-start gap-6">
             {template.logo && (

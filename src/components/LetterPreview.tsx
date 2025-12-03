@@ -507,7 +507,10 @@ export const LetterPreview = ({ letter, letterTemplate, onLetterUpdate, onTempla
         </div>
       </div>
       
-      <Card className="shadow-medium overflow-hidden">
+      <Card 
+        className="shadow-medium overflow-hidden"
+        style={editedTemplate?.letterBackgroundColor ? { backgroundColor: editedTemplate.letterBackgroundColor } : {}}
+      >
         {/* Letterhead Header */}
         {editedTemplate && editedTemplate.organizationName && (
           <div className="relative">
