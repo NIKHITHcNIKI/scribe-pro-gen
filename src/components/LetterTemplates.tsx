@@ -23,6 +23,8 @@ export interface LetterTemplate {
   email?: string;
   website?: string;
   letterheadStyle: LetterheadStyle;
+  headerBackgroundColor?: string;
+  letterBackgroundColor?: string;
 }
 
 const PRESET_TEMPLATES: { id: string; name: string; icon: React.ReactNode; description: string; defaults: Partial<LetterTemplate> }[] = [
@@ -138,6 +140,8 @@ export const LetterTemplates = ({ onTemplateChange }: LetterTemplatesProps) => {
     organizationName: "",
     address: "",
     letterheadStyle: "banner",
+    headerBackgroundColor: "",
+    letterBackgroundColor: "",
   });
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -293,6 +297,70 @@ export const LetterTemplates = ({ onTemplateChange }: LetterTemplatesProps) => {
               ))}
             </div>
           </div>
+
+          {/* Background Color Options */}
+          <div className="space-y-4">
+            <Label className="text-sm font-medium">Background Colors</Label>
+            <div className="grid md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="headerBgColor" className="text-xs text-muted-foreground">Header Background</Label>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="color"
+                    id="headerBgColor"
+                    value={customTemplate.headerBackgroundColor || "#1e40af"}
+                    onChange={(e) => handleCustomChange("headerBackgroundColor", e.target.value)}
+                    className="w-10 h-10 rounded-lg border border-border cursor-pointer"
+                  />
+                  <Input
+                    value={customTemplate.headerBackgroundColor || ""}
+                    onChange={(e) => handleCustomChange("headerBackgroundColor", e.target.value)}
+                    placeholder="#1e40af or leave empty for default"
+                    className="flex-1"
+                  />
+                  {customTemplate.headerBackgroundColor && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleCustomChange("headerBackgroundColor", "")}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="letterBgColor" className="text-xs text-muted-foreground">Letter Background</Label>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="color"
+                    id="letterBgColor"
+                    value={customTemplate.letterBackgroundColor || "#ffffff"}
+                    onChange={(e) => handleCustomChange("letterBackgroundColor", e.target.value)}
+                    className="w-10 h-10 rounded-lg border border-border cursor-pointer"
+                  />
+                  <Input
+                    value={customTemplate.letterBackgroundColor || ""}
+                    onChange={(e) => handleCustomChange("letterBackgroundColor", e.target.value)}
+                    placeholder="#ffffff or leave empty for default"
+                    className="flex-1"
+                  />
+                  {customTemplate.letterBackgroundColor && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleCustomChange("letterBackgroundColor", "")}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
           
           {/* Logo Upload */}
           <div className="space-y-2">
@@ -404,9 +472,19 @@ export const LetterTemplates = ({ onTemplateChange }: LetterTemplatesProps) => {
           </div>
 
           {/* Preview */}
-          <div className="mt-4 p-4 bg-muted/50 rounded-lg">
+          <div 
+            className="mt-4 p-4 rounded-lg border"
+            style={{ backgroundColor: customTemplate.letterBackgroundColor || undefined }}
+          >
             <p className="text-xs text-muted-foreground mb-2">Letterhead Preview:</p>
-            <div className="text-center border-b-2 border-primary/30 pb-4">
+            <div 
+              className="text-center border-b-2 border-primary/30 pb-4 rounded-t-lg"
+              style={{ 
+                backgroundColor: customTemplate.headerBackgroundColor || undefined,
+                color: customTemplate.headerBackgroundColor ? getContrastColor(customTemplate.headerBackgroundColor) : undefined,
+                padding: customTemplate.headerBackgroundColor ? '1rem' : undefined
+              }}
+            >
               {customTemplate.logo && (
                 <img 
                   src={customTemplate.logo} 
@@ -414,12 +492,17 @@ export const LetterTemplates = ({ onTemplateChange }: LetterTemplatesProps) => {
                   className="h-12 w-auto mx-auto mb-2 object-contain"
                 />
               )}
-              <h3 className="text-lg font-bold text-primary">{customTemplate.organizationName || "Organization Name"}</h3>
+              <h3 
+                className="text-lg font-bold"
+                style={{ color: customTemplate.headerBackgroundColor ? 'inherit' : 'hsl(var(--primary))' }}
+              >
+                {customTemplate.organizationName || "Organization Name"}
+              </h3>
               {customTemplate.tagline && (
-                <p className="text-sm text-muted-foreground italic">{customTemplate.tagline}</p>
+                <p className="text-sm opacity-80 italic">{customTemplate.tagline}</p>
               )}
-              <p className="text-xs mt-2 whitespace-pre-line">{customTemplate.address}</p>
-              <div className="flex justify-center gap-4 mt-2 text-xs text-muted-foreground">
+              <p className="text-xs mt-2 whitespace-pre-line opacity-90">{customTemplate.address}</p>
+              <div className="flex justify-center gap-4 mt-2 text-xs opacity-80">
                 {customTemplate.phone && <span>📞 {customTemplate.phone}</span>}
                 {customTemplate.email && <span>✉️ {customTemplate.email}</span>}
                 {customTemplate.website && <span>🌐 {customTemplate.website}</span>}
@@ -430,4 +513,15 @@ export const LetterTemplates = ({ onTemplateChange }: LetterTemplatesProps) => {
       )}
     </div>
   );
+};
+
+// Helper function for contrast
+const getContrastColor = (hexColor?: string) => {
+  if (!hexColor) return undefined;
+  const hex = hexColor.replace('#', '');
+  const r = parseInt(hex.substr(0, 2), 16);
+  const g = parseInt(hex.substr(2, 2), 16);
+  const b = parseInt(hex.substr(4, 2), 16);
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  return luminance > 0.5 ? '#1f2937' : '#ffffff';
 };
