@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Download, Copy, CheckCheck, Edit, Save, Languages, Share2, RefreshCw, FileEdit } from "lucide-react";
+import { Download, Copy, CheckCheck, Edit, Save, Languages, Share2, RefreshCw, FileEdit, FileText } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Textarea } from "@/components/ui/textarea";
@@ -8,6 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { supabase } from "@/integrations/supabase/client";
 import jsPDF from "jspdf";
+import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType } from "docx";
+import { saveAs } from "file-saver";
 import { LetterTemplate } from "@/components/LetterTemplates";
 import { LetterheadRenderer } from "@/components/LetterheadRenderer";
 
@@ -132,6 +134,135 @@ export const LetterPreview = ({ letter, letterTemplate, onLetterUpdate, onTempla
       title: "Downloaded!",
       description: "Your letter has been saved as PDF",
     });
+  };
+
+  const handleDownloadWord = async () => {
+    try {
+      const paragraphs: Paragraph[] = [];
+
+      // Add letterhead if exists
+      if (editedTemplate && editedTemplate.organizationName) {
+        paragraphs.push(
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: editedTemplate.organizationName.toUpperCase(),
+                bold: true,
+                size: 32,
+              }),
+            ],
+            alignment: AlignmentType.CENTER,
+            spacing: { after: 100 },
+          })
+        );
+
+        if (editedTemplate.tagline) {
+          paragraphs.push(
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: editedTemplate.tagline,
+                  italics: true,
+                  size: 20,
+                }),
+              ],
+              alignment: AlignmentType.CENTER,
+              spacing: { after: 100 },
+            })
+          );
+        }
+
+        if (editedTemplate.address) {
+          paragraphs.push(
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: editedTemplate.address,
+                  size: 20,
+                }),
+              ],
+              alignment: AlignmentType.CENTER,
+              spacing: { after: 50 },
+            })
+          );
+        }
+
+        const contactParts = [];
+        if (editedTemplate.phone) contactParts.push(`Phone: ${editedTemplate.phone}`);
+        if (editedTemplate.email) contactParts.push(`Email: ${editedTemplate.email}`);
+        if (editedTemplate.website) contactParts.push(`Web: ${editedTemplate.website}`);
+
+        if (contactParts.length > 0) {
+          paragraphs.push(
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: contactParts.join("  |  "),
+                  size: 18,
+                }),
+              ],
+              alignment: AlignmentType.CENTER,
+              spacing: { after: 200 },
+            })
+          );
+        }
+
+        // Add separator line
+        paragraphs.push(
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: "─".repeat(80),
+                size: 20,
+              }),
+            ],
+            alignment: AlignmentType.CENTER,
+            spacing: { after: 400 },
+          })
+        );
+      }
+
+      // Split letter content into paragraphs
+      const letterLines = editedLetter.split('\n');
+      letterLines.forEach((line) => {
+        paragraphs.push(
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: line,
+                size: 24,
+                font: "Times New Roman",
+              }),
+            ],
+            spacing: { after: 120 },
+          })
+        );
+      });
+
+      const doc = new Document({
+        sections: [
+          {
+            properties: {},
+            children: paragraphs,
+          },
+        ],
+      });
+
+      const blob = await Packer.toBlob(doc);
+      saveAs(blob, "letter.docx");
+
+      toast({
+        title: "Downloaded!",
+        description: "Your letter has been saved as Word document",
+      });
+    } catch (error) {
+      console.error("Word download error:", error);
+      toast({
+        title: "Download failed",
+        description: "Failed to generate Word document",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleShare = (platform: string) => {
@@ -285,7 +416,16 @@ export const LetterPreview = ({ letter, letterTemplate, onLetterUpdate, onTempla
             className="shadow-medium hover:shadow-strong transition-all"
           >
             <Download className="w-4 h-4 mr-2" />
-            Download PDF
+            PDF
+          </Button>
+
+          <Button
+            onClick={handleDownloadWord}
+            variant="outline"
+            className="shadow-soft hover:shadow-medium transition-all"
+          >
+            <FileText className="w-4 h-4 mr-2" />
+            Word
           </Button>
 
           <Popover>
