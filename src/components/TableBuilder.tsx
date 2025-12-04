@@ -3,22 +3,36 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
-import { Plus, Minus, Table, X } from "lucide-react";
+import { Plus, Minus, Table } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface TableBuilderProps {
   onTableChange: (tableData: TableData | null) => void;
 }
 
+export type TableBorderStyle = "none" | "all" | "horizontal" | "vertical" | "outer" | "header-only";
+
 export interface TableData {
   headers: string[];
   rows: string[][];
+  borderStyle: TableBorderStyle;
 }
+
+const borderStyleOptions: { value: TableBorderStyle; label: string }[] = [
+  { value: "all", label: "All Borders" },
+  { value: "outer", label: "Outer Border Only" },
+  { value: "horizontal", label: "Horizontal Lines" },
+  { value: "vertical", label: "Vertical Lines" },
+  { value: "header-only", label: "Header Border Only" },
+  { value: "none", label: "No Borders" },
+];
 
 export const TableBuilder = ({ onTableChange }: TableBuilderProps) => {
   const [includeTable, setIncludeTable] = useState(false);
   const [numRows, setNumRows] = useState(2);
   const [numCols, setNumCols] = useState(3);
+  const [borderStyle, setBorderStyle] = useState<TableBorderStyle>("all");
   const [headers, setHeaders] = useState<string[]>(["Column 1", "Column 2", "Column 3"]);
   const [rows, setRows] = useState<string[][]>([
     ["", "", ""],
@@ -30,18 +44,23 @@ export const TableBuilder = ({ onTableChange }: TableBuilderProps) => {
     if (!checked) {
       onTableChange(null);
     } else {
-      onTableChange({ headers, rows });
+      onTableChange({ headers, rows, borderStyle });
     }
+  };
+
+  const handleBorderStyleChange = (value: TableBorderStyle) => {
+    setBorderStyle(value);
+    onTableChange({ headers, rows, borderStyle: value });
   };
 
   const updateHeaders = (newHeaders: string[]) => {
     setHeaders(newHeaders);
-    onTableChange({ headers: newHeaders, rows });
+    onTableChange({ headers: newHeaders, rows, borderStyle });
   };
 
   const updateRows = (newRows: string[][]) => {
     setRows(newRows);
-    onTableChange({ headers, rows: newRows });
+    onTableChange({ headers, rows: newRows, borderStyle });
   };
 
   const handleColChange = (newCols: number) => {
@@ -66,7 +85,7 @@ export const TableBuilder = ({ onTableChange }: TableBuilderProps) => {
     setNumCols(newCols);
     setHeaders(newHeaders);
     setRows(newRows);
-    onTableChange({ headers: newHeaders, rows: newRows });
+    onTableChange({ headers: newHeaders, rows: newRows, borderStyle });
   };
 
   const handleRowChange = (newRowCount: number) => {
@@ -87,7 +106,7 @@ export const TableBuilder = ({ onTableChange }: TableBuilderProps) => {
 
     setNumRows(newRowCount);
     setRows(newRows);
-    onTableChange({ headers, rows: newRows });
+    onTableChange({ headers, rows: newRows, borderStyle });
   };
 
   const handleHeaderChange = (index: number, value: string) => {
@@ -103,6 +122,66 @@ export const TableBuilder = ({ onTableChange }: TableBuilderProps) => {
         : [...row]
     );
     updateRows(newRows);
+  };
+
+  // Helper functions for border styling
+  const getTableClasses = () => {
+    const base = "w-full";
+    switch (borderStyle) {
+      case "all":
+        return `${base} border border-border`;
+      case "outer":
+        return `${base} border-2 border-border`;
+      case "none":
+        return base;
+      default:
+        return base;
+    }
+  };
+
+  const getHeaderRowClasses = () => {
+    switch (borderStyle) {
+      case "horizontal":
+      case "header-only":
+        return "border-b-2 border-border";
+      default:
+        return "";
+    }
+  };
+
+  const getHeaderCellClasses = (index: number) => {
+    const base = "p-1";
+    switch (borderStyle) {
+      case "all":
+        return `${base} border border-border`;
+      case "vertical":
+        return index < headers.length - 1 ? `${base} border-r border-border` : base;
+      case "header-only":
+        return base;
+      default:
+        return base;
+    }
+  };
+
+  const getRowClasses = (rowIndex: number) => {
+    switch (borderStyle) {
+      case "horizontal":
+        return rowIndex < rows.length - 1 ? "border-b border-border" : "";
+      default:
+        return "";
+    }
+  };
+
+  const getCellClasses = (rowIndex: number, colIndex: number) => {
+    const base = "p-1";
+    switch (borderStyle) {
+      case "all":
+        return `${base} border border-border`;
+      case "vertical":
+        return colIndex < numCols - 1 ? `${base} border-r border-border` : base;
+      default:
+        return base;
+    }
   };
 
   return (
@@ -123,7 +202,7 @@ export const TableBuilder = ({ onTableChange }: TableBuilderProps) => {
 
       {includeTable && (
         <Card className="p-4 space-y-4 border-dashed">
-          <div className="flex flex-wrap gap-4">
+          <div className="flex flex-wrap gap-4 items-end">
             <div className="flex items-center gap-2">
               <Label className="text-sm">Columns:</Label>
               <div className="flex items-center gap-1">
@@ -177,18 +256,34 @@ export const TableBuilder = ({ onTableChange }: TableBuilderProps) => {
                 </Button>
               </div>
             </div>
+
+            <div className="flex flex-col gap-1">
+              <Label className="text-sm">Border Style:</Label>
+              <Select value={borderStyle} onValueChange={handleBorderStyleChange}>
+                <SelectTrigger className="w-[160px] h-8">
+                  <SelectValue placeholder="Select border" />
+                </SelectTrigger>
+                <SelectContent>
+                  {borderStyleOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           <div className="overflow-x-auto">
-            <table className="w-full border-collapse">
+            <table className={getTableClasses()}>
               <thead>
-                <tr>
+                <tr className={getHeaderRowClasses()}>
                   {headers.map((header, index) => (
-                    <th key={index} className="p-1">
+                    <th key={index} className={getHeaderCellClasses(index)}>
                       <Input
                         value={header}
                         onChange={(e) => handleHeaderChange(index, e.target.value)}
-                        className="h-9 text-center font-semibold bg-muted"
+                        className="h-9 text-center font-semibold bg-muted border-0"
                         placeholder={`Header ${index + 1}`}
                       />
                     </th>
@@ -197,13 +292,13 @@ export const TableBuilder = ({ onTableChange }: TableBuilderProps) => {
               </thead>
               <tbody>
                 {rows.map((row, rowIndex) => (
-                  <tr key={rowIndex}>
+                  <tr key={rowIndex} className={getRowClasses(rowIndex)}>
                     {row.map((cell, colIndex) => (
-                      <td key={colIndex} className="p-1">
+                      <td key={colIndex} className={getCellClasses(rowIndex, colIndex)}>
                         <Input
                           value={cell}
                           onChange={(e) => handleCellChange(rowIndex, colIndex, e.target.value)}
-                          className="h-9"
+                          className="h-9 border-0"
                           placeholder={`Row ${rowIndex + 1}`}
                         />
                       </td>
@@ -212,6 +307,35 @@ export const TableBuilder = ({ onTableChange }: TableBuilderProps) => {
                 ))}
               </tbody>
             </table>
+          </div>
+
+          {/* Border Style Preview */}
+          <div className="mt-4 p-3 bg-muted/50 rounded-md">
+            <p className="text-sm font-medium mb-2">Preview:</p>
+            <div className="overflow-x-auto">
+              <table className={getTableClasses()}>
+                <thead>
+                  <tr className={getHeaderRowClasses()}>
+                    {headers.map((header, index) => (
+                      <th key={index} className={`${getHeaderCellClasses(index)} px-3 py-2 text-sm font-semibold bg-muted`}>
+                        {header || `Header ${index + 1}`}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.slice(0, 2).map((row, rowIndex) => (
+                    <tr key={rowIndex} className={getRowClasses(rowIndex)}>
+                      {row.map((cell, colIndex) => (
+                        <td key={colIndex} className={`${getCellClasses(rowIndex, colIndex)} px-3 py-2 text-sm`}>
+                          {cell || `Cell ${rowIndex + 1}-${colIndex + 1}`}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
 
           <p className="text-sm text-muted-foreground">
