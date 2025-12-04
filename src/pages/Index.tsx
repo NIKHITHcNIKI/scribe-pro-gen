@@ -8,6 +8,7 @@ import { LetterTemplate } from "@/components/LetterTemplates";
 const Index = () => {
   const [generatedLetter, setGeneratedLetter] = useState<string>("");
   const [letterTemplate, setLetterTemplate] = useState<LetterTemplate | null>(null);
+  const [formKey, setFormKey] = useState(0);
   const formRef = useRef<HTMLDivElement>(null);
 
   const handleGetStarted = () => {
@@ -30,6 +31,7 @@ const Index = () => {
   const handleReset = () => {
     setGeneratedLetter("");
     setLetterTemplate(null);
+    setFormKey(prev => prev + 1);
     formRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
@@ -63,7 +65,7 @@ const Index = () => {
               </p>
             </div>
             
-            <LetterForm onLetterGenerated={handleLetterGenerated} />
+            <LetterForm key={formKey} onLetterGenerated={handleLetterGenerated} />
           </div>
         </section>
 

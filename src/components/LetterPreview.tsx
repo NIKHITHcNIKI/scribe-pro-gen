@@ -31,8 +31,12 @@ export const LetterPreview = ({ letter, letterTemplate, onLetterUpdate, onTempla
   const { toast } = useToast();
 
   useEffect(() => {
+    setEditedLetter(letter);
     setEditedTemplate(letterTemplate || null);
-  }, [letterTemplate]);
+    setCopied(false);
+    setIsEditing(false);
+    setIsEditingHeader(false);
+  }, [letter, letterTemplate]);
 
   const handleCopy = async () => {
     await navigator.clipboard.writeText(editedLetter);
