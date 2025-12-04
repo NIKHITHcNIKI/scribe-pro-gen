@@ -126,12 +126,18 @@ export const TableBuilder = ({ onTableChange }: TableBuilderProps) => {
 
   // Helper functions for border styling
   const getTableClasses = () => {
-    const base = "w-full";
+    const base = "w-full border-collapse";
     switch (borderStyle) {
       case "all":
         return `${base} border border-border`;
       case "outer":
         return `${base} border-2 border-border`;
+      case "horizontal":
+        return `${base} border-t border-b border-border`;
+      case "vertical":
+        return base;
+      case "header-only":
+        return base;
       case "none":
         return base;
       default:
@@ -142,8 +148,11 @@ export const TableBuilder = ({ onTableChange }: TableBuilderProps) => {
   const getHeaderRowClasses = () => {
     switch (borderStyle) {
       case "horizontal":
+        return "border-b-2 border-border";
       case "header-only":
         return "border-b-2 border-border";
+      case "all":
+        return "";
       default:
         return "";
     }
@@ -155,8 +164,10 @@ export const TableBuilder = ({ onTableChange }: TableBuilderProps) => {
       case "all":
         return `${base} border border-border`;
       case "vertical":
-        return index < headers.length - 1 ? `${base} border-r border-border` : base;
+        return `${base} border-l border-r border-border`;
       case "header-only":
+        return base;
+      case "horizontal":
         return base;
       default:
         return base;
@@ -166,7 +177,9 @@ export const TableBuilder = ({ onTableChange }: TableBuilderProps) => {
   const getRowClasses = (rowIndex: number) => {
     switch (borderStyle) {
       case "horizontal":
-        return rowIndex < rows.length - 1 ? "border-b border-border" : "";
+        return "border-b border-border";
+      case "all":
+        return "";
       default:
         return "";
     }
@@ -178,7 +191,9 @@ export const TableBuilder = ({ onTableChange }: TableBuilderProps) => {
       case "all":
         return `${base} border border-border`;
       case "vertical":
-        return colIndex < numCols - 1 ? `${base} border-r border-border` : base;
+        return `${base} border-l border-r border-border`;
+      case "horizontal":
+        return base;
       default:
         return base;
     }
