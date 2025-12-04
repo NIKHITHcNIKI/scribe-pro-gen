@@ -125,77 +125,60 @@ export const TableBuilder = ({ onTableChange }: TableBuilderProps) => {
   };
 
   // Helper functions for border styling
-  const getTableClasses = () => {
-    const base = "w-full border-collapse";
+  const getTableStyles = (): React.CSSProperties => {
     switch (borderStyle) {
       case "all":
-        return `${base} border border-border`;
+        return { borderCollapse: "collapse", border: "1px solid #d1d5db" };
       case "outer":
-        return `${base} border-2 border-border`;
+        return { borderCollapse: "collapse", border: "2px solid #d1d5db" };
       case "horizontal":
-        return `${base} border-t border-b border-border`;
+        return { borderCollapse: "collapse" };
       case "vertical":
-        return base;
+        return { borderCollapse: "collapse" };
       case "header-only":
-        return base;
+        return { borderCollapse: "collapse" };
       case "none":
-        return base;
+        return { borderCollapse: "collapse" };
       default:
-        return base;
+        return { borderCollapse: "collapse" };
     }
   };
 
-  const getHeaderRowClasses = () => {
+  const getHeaderCellStyles = (): React.CSSProperties => {
     switch (borderStyle) {
+      case "all":
+        return { border: "1px solid #d1d5db", padding: "4px" };
+      case "outer":
+        return { padding: "4px" };
       case "horizontal":
-        return "border-b-2 border-border";
-      case "header-only":
-        return "border-b-2 border-border";
-      case "all":
-        return "";
-      default:
-        return "";
-    }
-  };
-
-  const getHeaderCellClasses = (index: number) => {
-    const base = "p-1";
-    switch (borderStyle) {
-      case "all":
-        return `${base} border border-border`;
+        return { borderBottom: "2px solid #d1d5db", padding: "4px" };
       case "vertical":
-        return `${base} border-l border-r border-border`;
+        return { borderLeft: "1px solid #d1d5db", borderRight: "1px solid #d1d5db", padding: "4px" };
       case "header-only":
-        return base;
-      case "horizontal":
-        return base;
+        return { borderBottom: "2px solid #d1d5db", padding: "4px" };
+      case "none":
+        return { padding: "4px" };
       default:
-        return base;
+        return { padding: "4px" };
     }
   };
 
-  const getRowClasses = (rowIndex: number) => {
+  const getCellStyles = (rowIndex: number): React.CSSProperties => {
     switch (borderStyle) {
+      case "all":
+        return { border: "1px solid #d1d5db", padding: "4px" };
+      case "outer":
+        return { padding: "4px" };
       case "horizontal":
-        return "border-b border-border";
-      case "all":
-        return "";
-      default:
-        return "";
-    }
-  };
-
-  const getCellClasses = (rowIndex: number, colIndex: number) => {
-    const base = "p-1";
-    switch (borderStyle) {
-      case "all":
-        return `${base} border border-border`;
+        return { borderBottom: "1px solid #d1d5db", padding: "4px" };
       case "vertical":
-        return `${base} border-l border-r border-border`;
-      case "horizontal":
-        return base;
+        return { borderLeft: "1px solid #d1d5db", borderRight: "1px solid #d1d5db", padding: "4px" };
+      case "header-only":
+        return { padding: "4px" };
+      case "none":
+        return { padding: "4px" };
       default:
-        return base;
+        return { padding: "4px" };
     }
   };
 
@@ -290,11 +273,11 @@ export const TableBuilder = ({ onTableChange }: TableBuilderProps) => {
           </div>
 
           <div className="overflow-x-auto">
-            <table className={getTableClasses()}>
+            <table className="w-full" style={getTableStyles()}>
               <thead>
-                <tr className={getHeaderRowClasses()}>
+                <tr>
                   {headers.map((header, index) => (
-                    <th key={index} className={getHeaderCellClasses(index)}>
+                    <th key={index} style={getHeaderCellStyles()}>
                       <Input
                         value={header}
                         onChange={(e) => handleHeaderChange(index, e.target.value)}
@@ -307,9 +290,9 @@ export const TableBuilder = ({ onTableChange }: TableBuilderProps) => {
               </thead>
               <tbody>
                 {rows.map((row, rowIndex) => (
-                  <tr key={rowIndex} className={getRowClasses(rowIndex)}>
+                  <tr key={rowIndex}>
                     {row.map((cell, colIndex) => (
-                      <td key={colIndex} className={getCellClasses(rowIndex, colIndex)}>
+                      <td key={colIndex} style={getCellStyles(rowIndex)}>
                         <Input
                           value={cell}
                           onChange={(e) => handleCellChange(rowIndex, colIndex, e.target.value)}
@@ -328,11 +311,11 @@ export const TableBuilder = ({ onTableChange }: TableBuilderProps) => {
           <div className="mt-4 p-3 bg-muted/50 rounded-md">
             <p className="text-sm font-medium mb-2">Preview:</p>
             <div className="overflow-x-auto">
-              <table className={getTableClasses()}>
+              <table className="w-full" style={getTableStyles()}>
                 <thead>
-                  <tr className={getHeaderRowClasses()}>
+                  <tr>
                     {headers.map((header, index) => (
-                      <th key={index} className={`${getHeaderCellClasses(index)} px-3 py-2 text-sm font-semibold bg-muted`}>
+                      <th key={index} style={{ ...getHeaderCellStyles(), padding: "8px 12px", fontSize: "14px", fontWeight: 600 }} className="bg-muted">
                         {header || `Header ${index + 1}`}
                       </th>
                     ))}
@@ -340,9 +323,9 @@ export const TableBuilder = ({ onTableChange }: TableBuilderProps) => {
                 </thead>
                 <tbody>
                   {rows.slice(0, 2).map((row, rowIndex) => (
-                    <tr key={rowIndex} className={getRowClasses(rowIndex)}>
+                    <tr key={rowIndex}>
                       {row.map((cell, colIndex) => (
-                        <td key={colIndex} className={`${getCellClasses(rowIndex, colIndex)} px-3 py-2 text-sm`}>
+                        <td key={colIndex} style={{ ...getCellStyles(rowIndex), padding: "8px 12px", fontSize: "14px" }}>
                           {cell || `Cell ${rowIndex + 1}-${colIndex + 1}`}
                         </td>
                       ))}
