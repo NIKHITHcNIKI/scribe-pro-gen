@@ -318,6 +318,63 @@ export const LetterPreview = ({ letter, letterTemplate, onLetterUpdate, onTempla
     while (i < lines.length) {
       const line = lines[i];
       
+      // Check for ASCII art table format (+----+ style)
+      if (/^\s*\+[-+]+\+\s*$/.test(line)) {
+        const tableLines: string[] = [];
+        while (i < lines.length && (/^\s*\+[-+]+\+\s*$/.test(lines[i]) || /^\s*\|.+\|\s*$/.test(lines[i]))) {
+          tableLines.push(lines[i]);
+          i++;
+        }
+        
+        // Extract data rows (lines with |)
+        const dataRows = tableLines.filter(l => /^\s*\|.+\|\s*$/.test(l));
+        
+        if (dataRows.length > 0) {
+          // First row is header, rest are body
+          const headerCells = dataRows[0].split('|').filter(cell => cell.trim() !== '');
+          const bodyRows = dataRows.slice(1).map(row => 
+            row.split('|').filter(cell => cell.trim() !== '')
+          );
+
+          elements.push(
+            <table key={`table-${elements.length}`} style={{ borderCollapse: 'collapse', width: 'auto', margin: '16px 0' }}>
+              <thead>
+                <tr>
+                  {headerCells.map((cell, idx) => (
+                    <th key={idx} style={{ 
+                      border: '1px solid hsl(var(--border))', 
+                      padding: '8px 12px', 
+                      backgroundColor: 'hsl(var(--muted))',
+                      fontWeight: 600,
+                      textAlign: 'left'
+                    }}>
+                      {cell.trim()}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              {bodyRows.length > 0 && (
+                <tbody>
+                  {bodyRows.map((row, rowIdx) => (
+                    <tr key={rowIdx}>
+                      {row.map((cell, cellIdx) => (
+                        <td key={cellIdx} style={{ 
+                          border: '1px solid hsl(var(--border))', 
+                          padding: '8px 12px' 
+                        }}>
+                          {cell.trim()}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              )}
+            </table>
+          );
+          continue;
+        }
+      }
+      
       // Check if this line starts a markdown table (contains | and next line is separator)
       if (line.includes('|') && i + 1 < lines.length && /^\|?\s*[-:]+\s*\|/.test(lines[i + 1])) {
         // Parse the table
