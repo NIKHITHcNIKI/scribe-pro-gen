@@ -309,6 +309,82 @@ export const LetterPreview = ({ letter, letterTemplate, onLetterUpdate, onTempla
     }
   };
 
+  // Function to parse and render markdown tables as HTML tables
+  const renderLetterContent = (content: string) => {
+    const lines = content.split('\n');
+    const elements: React.ReactNode[] = [];
+    let i = 0;
+
+    while (i < lines.length) {
+      const line = lines[i];
+      
+      // Check if this line starts a markdown table (contains | and next line is separator)
+      if (line.includes('|') && i + 1 < lines.length && /^\|?\s*[-:]+\s*\|/.test(lines[i + 1])) {
+        // Parse the table
+        const tableLines: string[] = [];
+        while (i < lines.length && lines[i].includes('|')) {
+          tableLines.push(lines[i]);
+          i++;
+        }
+        
+        if (tableLines.length >= 2) {
+          // Parse header
+          const headerCells = tableLines[0].split('|').filter(cell => cell.trim() !== '');
+          
+          // Parse body rows (skip separator line at index 1)
+          const bodyRows = tableLines.slice(2).map(row => 
+            row.split('|').filter(cell => cell.trim() !== '')
+          );
+
+          elements.push(
+            <table key={`table-${elements.length}`} style={{ borderCollapse: 'collapse', width: '100%', margin: '16px 0' }}>
+              <thead>
+                <tr>
+                  {headerCells.map((cell, idx) => (
+                    <th key={idx} style={{ 
+                      border: '1px solid hsl(var(--border))', 
+                      padding: '8px 12px', 
+                      backgroundColor: 'hsl(var(--muted))',
+                      fontWeight: 600,
+                      textAlign: 'left'
+                    }}>
+                      {cell.trim()}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {bodyRows.map((row, rowIdx) => (
+                  <tr key={rowIdx}>
+                    {row.map((cell, cellIdx) => (
+                      <td key={cellIdx} style={{ 
+                        border: '1px solid hsl(var(--border))', 
+                        padding: '8px 12px' 
+                      }}>
+                        {cell.trim()}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          );
+        }
+      } else {
+        // Regular text line
+        elements.push(
+          <span key={`line-${i}`}>
+            {line}
+            {i < lines.length - 1 && <br />}
+          </span>
+        );
+        i++;
+      }
+    }
+
+    return <div className="whitespace-pre-wrap">{elements}</div>;
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap gap-3 justify-between items-center">
@@ -542,10 +618,8 @@ export const LetterPreview = ({ letter, letterTemplate, onLetterUpdate, onTempla
               className="min-h-[500px] font-serif text-base leading-relaxed"
             />
           ) : (
-            <div className="prose prose-slate max-w-none">
-              <pre className="whitespace-pre-wrap font-serif text-base leading-relaxed text-foreground">
-                {editedLetter}
-              </pre>
+            <div className="prose prose-slate max-w-none font-serif text-base leading-relaxed text-foreground">
+              {renderLetterContent(editedLetter)}
             </div>
           )}
         </div>
