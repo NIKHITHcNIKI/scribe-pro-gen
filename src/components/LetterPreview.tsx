@@ -277,7 +277,7 @@ export const LetterPreview = ({ letter, letterTemplate, onLetterUpdate, onTempla
     
     switch (platform) {
       case "whatsapp":
-        shareUrl = `https://wa.me/?text=${encodedText}`;
+        shareUrl = `https://web.whatsapp.com/send?text=${encodedText}`;
         break;
       case "telegram":
         shareUrl = `https://t.me/share/url?text=${encodedText}`;
