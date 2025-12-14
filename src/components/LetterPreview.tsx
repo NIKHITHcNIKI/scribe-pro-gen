@@ -111,26 +111,211 @@ export const LetterPreview = ({ letter, letterTemplate, onLetterUpdate, onTempla
     const pageHeight = doc.internal.pageSize.getHeight();
     const maxWidth = pageWidth - 2 * margin;
     
-    // Set font
-    doc.setFont("helvetica");
+    let y = margin;
+    const lineHeight = 6;
+    
+    // Add letterhead if exists
+    if (editedTemplate && editedTemplate.organizationName) {
+      // Organization name
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(16);
+      const orgName = editedTemplate.organizationName.toUpperCase();
+      const orgNameWidth = doc.getTextWidth(orgName);
+      doc.text(orgName, (pageWidth - orgNameWidth) / 2, y);
+      y += 8;
+      
+      // Tagline
+      if (editedTemplate.tagline) {
+        doc.setFont("helvetica", "italic");
+        doc.setFontSize(10);
+        const taglineWidth = doc.getTextWidth(editedTemplate.tagline);
+        doc.text(editedTemplate.tagline, (pageWidth - taglineWidth) / 2, y);
+        y += 6;
+      }
+      
+      // Address
+      if (editedTemplate.address) {
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(9);
+        const addressWidth = doc.getTextWidth(editedTemplate.address);
+        doc.text(editedTemplate.address, (pageWidth - addressWidth) / 2, y);
+        y += 5;
+      }
+      
+      // Contact info
+      const contactParts = [];
+      if (editedTemplate.phone) contactParts.push(`Phone: ${editedTemplate.phone}`);
+      if (editedTemplate.email) contactParts.push(`Email: ${editedTemplate.email}`);
+      if (editedTemplate.website) contactParts.push(`Web: ${editedTemplate.website}`);
+      
+      if (contactParts.length > 0) {
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(8);
+        const contactText = contactParts.join("  |  ");
+        const contactWidth = doc.getTextWidth(contactText);
+        doc.text(contactText, (pageWidth - contactWidth) / 2, y);
+        y += 6;
+      }
+      
+      // Separator line
+      doc.setDrawColor(100, 100, 100);
+      doc.setLineWidth(0.5);
+      doc.line(margin, y, pageWidth - margin, y);
+      y += 10;
+    }
+    
+    // Parse and render letter content with tables
+    const contentLines = editedLetter.split('\n');
+    let i = 0;
+    
+    doc.setFont("helvetica", "normal");
     doc.setFontSize(11);
     
-    // Split text into lines that fit the page width
-    const lines = doc.splitTextToSize(editedLetter, maxWidth);
-    
-    let y = margin;
-    const lineHeight = 7;
-    
-    lines.forEach((line: string) => {
-      // Check if we need a new page
+    while (i < contentLines.length) {
+      const line = contentLines[i];
+      
+      // Check for ASCII art table format (+----+ style)
+      if (/^\s*\+[-+]+\+\s*$/.test(line)) {
+        const tableLines: string[] = [];
+        while (i < contentLines.length && (/^\s*\+[-+]+\+\s*$/.test(contentLines[i]) || /^\s*\|.+\|\s*$/.test(contentLines[i]))) {
+          tableLines.push(contentLines[i]);
+          i++;
+        }
+        
+        // Extract data rows (lines with |)
+        const dataRows = tableLines.filter(l => /^\s*\|.+\|\s*$/.test(l));
+        
+        if (dataRows.length > 0) {
+          // Render table in PDF
+          const headerCells = dataRows[0].split('|').filter(cell => cell.trim() !== '');
+          const bodyRows = dataRows.slice(1).map(row => 
+            row.split('|').filter(cell => cell.trim() !== '')
+          );
+          
+          const colCount = headerCells.length;
+          const colWidth = (maxWidth) / colCount;
+          const cellPadding = 3;
+          const rowHeight = 8;
+          
+          // Check if table fits on current page
+          const tableHeight = (bodyRows.length + 1) * rowHeight;
+          if (y + tableHeight > pageHeight - margin) {
+            doc.addPage();
+            y = margin;
+          }
+          
+          // Draw header row
+          doc.setFillColor(240, 240, 240);
+          doc.rect(margin, y, maxWidth, rowHeight, 'F');
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(10);
+          
+          headerCells.forEach((cell, idx) => {
+            const cellX = margin + idx * colWidth;
+            doc.rect(cellX, y, colWidth, rowHeight, 'S');
+            doc.text(cell.trim(), cellX + cellPadding, y + rowHeight - 2);
+          });
+          y += rowHeight;
+          
+          // Draw body rows
+          doc.setFont("helvetica", "normal");
+          bodyRows.forEach((row) => {
+            if (y + rowHeight > pageHeight - margin) {
+              doc.addPage();
+              y = margin;
+            }
+            
+            row.forEach((cell, idx) => {
+              const cellX = margin + idx * colWidth;
+              doc.rect(cellX, y, colWidth, rowHeight, 'S');
+              doc.text(cell.trim(), cellX + cellPadding, y + rowHeight - 2);
+            });
+            y += rowHeight;
+          });
+          
+          y += 5;
+          continue;
+        }
+      }
+      
+      // Check for markdown table
+      if (line.includes('|') && i + 1 < contentLines.length && /^\|?\s*[-:]+\s*\|/.test(contentLines[i + 1])) {
+        const tableLines: string[] = [];
+        while (i < contentLines.length && contentLines[i].includes('|')) {
+          tableLines.push(contentLines[i]);
+          i++;
+        }
+        
+        if (tableLines.length >= 2) {
+          const headerCells = tableLines[0].split('|').filter(cell => cell.trim() !== '');
+          const bodyRows = tableLines.slice(2).map(row => 
+            row.split('|').filter(cell => cell.trim() !== '')
+          );
+          
+          const colCount = headerCells.length;
+          const colWidth = (maxWidth) / colCount;
+          const cellPadding = 3;
+          const rowHeight = 8;
+          
+          // Check if table fits on current page
+          const tableHeight = (bodyRows.length + 1) * rowHeight;
+          if (y + tableHeight > pageHeight - margin) {
+            doc.addPage();
+            y = margin;
+          }
+          
+          // Draw header row
+          doc.setFillColor(240, 240, 240);
+          doc.rect(margin, y, maxWidth, rowHeight, 'F');
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(10);
+          
+          headerCells.forEach((cell, idx) => {
+            const cellX = margin + idx * colWidth;
+            doc.rect(cellX, y, colWidth, rowHeight, 'S');
+            doc.text(cell.trim(), cellX + cellPadding, y + rowHeight - 2);
+          });
+          y += rowHeight;
+          
+          // Draw body rows
+          doc.setFont("helvetica", "normal");
+          bodyRows.forEach((row) => {
+            if (y + rowHeight > pageHeight - margin) {
+              doc.addPage();
+              y = margin;
+            }
+            
+            row.forEach((cell, idx) => {
+              const cellX = margin + idx * colWidth;
+              doc.rect(cellX, y, colWidth, rowHeight, 'S');
+              doc.text(cell.trim(), cellX + cellPadding, y + rowHeight - 2);
+            });
+            y += rowHeight;
+          });
+          
+          y += 5;
+        }
+        continue;
+      }
+      
+      // Regular text line
       if (y + lineHeight > pageHeight - margin) {
         doc.addPage();
         y = margin;
       }
       
-      doc.text(line, margin, y);
-      y += lineHeight;
-    });
+      const wrappedLines = doc.splitTextToSize(line, maxWidth);
+      wrappedLines.forEach((wrappedLine: string) => {
+        if (y + lineHeight > pageHeight - margin) {
+          doc.addPage();
+          y = margin;
+        }
+        doc.text(wrappedLine, margin, y);
+        y += lineHeight;
+      });
+      
+      i++;
+    }
     
     doc.save("letter.pdf");
     
