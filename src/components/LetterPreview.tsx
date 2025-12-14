@@ -138,40 +138,44 @@ export const LetterPreview = ({ letter, letterTemplate, onLetterUpdate, onTempla
     
     // Add letterhead if exists
     if (editedTemplate && editedTemplate.organizationName) {
-      // Add logo if exists
+      // Add logo if exists - centered layout
       if (editedTemplate.logo) {
         try {
           const logoBase64 = await loadImageAsBase64(editedTemplate.logo);
           const logoHeight = 20;
           const logoWidth = 20;
-          doc.addImage(logoBase64, 'PNG', margin, y, logoWidth, logoHeight);
           
-          // Position text next to logo
-          const textStartX = margin + logoWidth + 5;
-          const textMaxWidth = maxWidth - logoWidth - 5;
+          // Center the logo
+          const logoX = (pageWidth - logoWidth) / 2;
+          doc.addImage(logoBase64, 'PNG', logoX, y, logoWidth, logoHeight);
+          y += logoHeight + 4;
           
-          // Organization name
+          // Organization name - centered
           doc.setFont("helvetica", "bold");
-          doc.setFontSize(14);
+          doc.setFontSize(16);
           const orgName = editedTemplate.organizationName.toUpperCase();
-          doc.text(orgName, textStartX, y + 6);
+          const orgNameWidth = doc.getTextWidth(orgName);
+          doc.text(orgName, (pageWidth - orgNameWidth) / 2, y);
+          y += 7;
           
-          // Tagline
+          // Tagline - centered
           if (editedTemplate.tagline) {
             doc.setFont("helvetica", "italic");
-            doc.setFontSize(9);
-            doc.text(editedTemplate.tagline, textStartX, y + 12);
+            doc.setFontSize(10);
+            const taglineWidth = doc.getTextWidth(editedTemplate.tagline);
+            doc.text(editedTemplate.tagline, (pageWidth - taglineWidth) / 2, y);
+            y += 6;
           }
           
-          // Address
+          // Address - centered
           if (editedTemplate.address) {
             doc.setFont("helvetica", "normal");
-            doc.setFontSize(8);
+            doc.setFontSize(9);
             const addressOneLine = editedTemplate.address.split('\n').join(' | ');
-            doc.text(addressOneLine, textStartX, y + 17);
+            const addressWidth = doc.getTextWidth(addressOneLine);
+            doc.text(addressOneLine, (pageWidth - addressWidth) / 2, y);
+            y += 5;
           }
-          
-          y += logoHeight + 3;
         } catch (error) {
           console.error('Failed to load logo:', error);
           // Fallback to text-only header
