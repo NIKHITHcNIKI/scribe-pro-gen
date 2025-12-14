@@ -102,7 +102,29 @@ export const LetterPreview = ({ letter, letterTemplate, onLetterUpdate, onTempla
     }
   };
 
-  const handleDownloadPDF = () => {
+  // Helper function to load image as base64
+  const loadImageAsBase64 = (url: string): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(img, 0, 0);
+          resolve(canvas.toDataURL('image/png'));
+        } else {
+          reject(new Error('Could not get canvas context'));
+        }
+      };
+      img.onerror = () => reject(new Error('Failed to load image'));
+      img.src = url;
+    });
+  };
+
+  const handleDownloadPDF = async () => {
     const doc = new jsPDF();
     
     // Set margins
@@ -116,30 +138,92 @@ export const LetterPreview = ({ letter, letterTemplate, onLetterUpdate, onTempla
     
     // Add letterhead if exists
     if (editedTemplate && editedTemplate.organizationName) {
-      // Organization name
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(16);
-      const orgName = editedTemplate.organizationName.toUpperCase();
-      const orgNameWidth = doc.getTextWidth(orgName);
-      doc.text(orgName, (pageWidth - orgNameWidth) / 2, y);
-      y += 8;
-      
-      // Tagline
-      if (editedTemplate.tagline) {
-        doc.setFont("helvetica", "italic");
-        doc.setFontSize(10);
-        const taglineWidth = doc.getTextWidth(editedTemplate.tagline);
-        doc.text(editedTemplate.tagline, (pageWidth - taglineWidth) / 2, y);
-        y += 6;
-      }
-      
-      // Address
-      if (editedTemplate.address) {
-        doc.setFont("helvetica", "normal");
-        doc.setFontSize(9);
-        const addressWidth = doc.getTextWidth(editedTemplate.address);
-        doc.text(editedTemplate.address, (pageWidth - addressWidth) / 2, y);
-        y += 5;
+      // Add logo if exists
+      if (editedTemplate.logo) {
+        try {
+          const logoBase64 = await loadImageAsBase64(editedTemplate.logo);
+          const logoHeight = 20;
+          const logoWidth = 20;
+          doc.addImage(logoBase64, 'PNG', margin, y, logoWidth, logoHeight);
+          
+          // Position text next to logo
+          const textStartX = margin + logoWidth + 5;
+          const textMaxWidth = maxWidth - logoWidth - 5;
+          
+          // Organization name
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(14);
+          const orgName = editedTemplate.organizationName.toUpperCase();
+          doc.text(orgName, textStartX, y + 6);
+          
+          // Tagline
+          if (editedTemplate.tagline) {
+            doc.setFont("helvetica", "italic");
+            doc.setFontSize(9);
+            doc.text(editedTemplate.tagline, textStartX, y + 12);
+          }
+          
+          // Address
+          if (editedTemplate.address) {
+            doc.setFont("helvetica", "normal");
+            doc.setFontSize(8);
+            const addressOneLine = editedTemplate.address.split('\n').join(' | ');
+            doc.text(addressOneLine, textStartX, y + 17);
+          }
+          
+          y += logoHeight + 3;
+        } catch (error) {
+          console.error('Failed to load logo:', error);
+          // Fallback to text-only header
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(16);
+          const orgName = editedTemplate.organizationName.toUpperCase();
+          const orgNameWidth = doc.getTextWidth(orgName);
+          doc.text(orgName, (pageWidth - orgNameWidth) / 2, y);
+          y += 8;
+          
+          if (editedTemplate.tagline) {
+            doc.setFont("helvetica", "italic");
+            doc.setFontSize(10);
+            const taglineWidth = doc.getTextWidth(editedTemplate.tagline);
+            doc.text(editedTemplate.tagline, (pageWidth - taglineWidth) / 2, y);
+            y += 6;
+          }
+          
+          if (editedTemplate.address) {
+            doc.setFont("helvetica", "normal");
+            doc.setFontSize(9);
+            const addressOneLine = editedTemplate.address.split('\n').join(' | ');
+            const addressWidth = doc.getTextWidth(addressOneLine);
+            doc.text(addressOneLine, (pageWidth - addressWidth) / 2, y);
+            y += 5;
+          }
+        }
+      } else {
+        // No logo - centered text header
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(16);
+        const orgName = editedTemplate.organizationName.toUpperCase();
+        const orgNameWidth = doc.getTextWidth(orgName);
+        doc.text(orgName, (pageWidth - orgNameWidth) / 2, y);
+        y += 8;
+        
+        if (editedTemplate.tagline) {
+          doc.setFont("helvetica", "italic");
+          doc.setFontSize(10);
+          const taglineWidth = doc.getTextWidth(editedTemplate.tagline);
+          doc.text(editedTemplate.tagline, (pageWidth - taglineWidth) / 2, y);
+          y += 6;
+        }
+        
+        if (editedTemplate.address) {
+          doc.setFont("helvetica", "normal");
+          doc.setFontSize(9);
+          const addressOneLine = editedTemplate.address.split('\n').join(' | ');
+          const addressWidth = doc.getTextWidth(addressOneLine);
+          doc.text(addressOneLine, (pageWidth - addressWidth) / 2, y);
+          y += 5;
+        }
       }
       
       // Contact info
