@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { supabase } from "@/integrations/supabase/client";
 import jsPDF from "jspdf";
-import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType } from "docx";
+import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, Table, TableRow, TableCell, WidthType, BorderStyle, ImageRun } from "docx";
 import { saveAs } from "file-saver";
 import { LetterTemplate } from "@/components/LetterTemplates";
 import { LetterheadRenderer } from "@/components/LetterheadRenderer";
@@ -415,10 +415,38 @@ export const LetterPreview = ({ letter, letterTemplate, onLetterUpdate, onTempla
 
   const handleDownloadWord = async () => {
     try {
-      const paragraphs: Paragraph[] = [];
+      const paragraphs: (Paragraph | Table)[] = [];
 
       // Add letterhead if exists
       if (editedTemplate && editedTemplate.organizationName) {
+        // Add logo if exists
+        if (editedTemplate.logo) {
+          try {
+            const response = await fetch(editedTemplate.logo);
+            const blob = await response.blob();
+            const arrayBuffer = await blob.arrayBuffer();
+            
+            paragraphs.push(
+              new Paragraph({
+                children: [
+                  new ImageRun({
+                    data: arrayBuffer,
+                    transformation: {
+                      width: 80,
+                      height: 80,
+                    },
+                    type: 'png',
+                  }),
+                ],
+                alignment: AlignmentType.CENTER,
+                spacing: { after: 200 },
+              })
+            );
+          } catch (error) {
+            console.error('Failed to load logo for Word:', error);
+          }
+        }
+
         paragraphs.push(
           new Paragraph({
             children: [
@@ -454,7 +482,7 @@ export const LetterPreview = ({ letter, letterTemplate, onLetterUpdate, onTempla
             new Paragraph({
               children: [
                 new TextRun({
-                  text: editedTemplate.address,
+                  text: editedTemplate.address.split('\n').join(' | '),
                   size: 20,
                 }),
               ],
@@ -499,9 +527,112 @@ export const LetterPreview = ({ letter, letterTemplate, onLetterUpdate, onTempla
         );
       }
 
-      // Split letter content into paragraphs
+      // Parse letter content with table support
       const letterLines = editedLetter.split('\n');
-      letterLines.forEach((line) => {
+      let i = 0;
+
+      while (i < letterLines.length) {
+        const line = letterLines[i];
+
+        // Check for ASCII art table format (+----+ style)
+        if (/^\s*\+[-+]+\+\s*$/.test(line)) {
+          const tableLines: string[] = [];
+          while (i < letterLines.length && (/^\s*\+[-+]+\+\s*$/.test(letterLines[i]) || /^\s*\|.+\|\s*$/.test(letterLines[i]))) {
+            tableLines.push(letterLines[i]);
+            i++;
+          }
+          
+          const dataRows = tableLines.filter(l => /^\s*\|.+\|\s*$/.test(l));
+          
+          if (dataRows.length > 0) {
+            const headerCells = dataRows[0].split('|').filter(cell => cell.trim() !== '');
+            const bodyRows = dataRows.slice(1).map(row => 
+              row.split('|').filter(cell => cell.trim() !== '')
+            );
+
+            const tableRowsData = [headerCells, ...bodyRows];
+            const tableRows = tableRowsData.map((rowData, rowIndex) => 
+              new TableRow({
+                children: rowData.map(cellText => 
+                  new TableCell({
+                    children: [
+                      new Paragraph({
+                        children: [
+                          new TextRun({
+                            text: cellText.trim(),
+                            bold: rowIndex === 0,
+                            size: 22,
+                          }),
+                        ],
+                      }),
+                    ],
+                    shading: rowIndex === 0 ? { fill: "E0E0E0" } : undefined,
+                  })
+                ),
+              })
+            );
+
+            paragraphs.push(
+              new Table({
+                rows: tableRows,
+                width: { size: 100, type: WidthType.PERCENTAGE },
+              })
+            );
+            
+            paragraphs.push(new Paragraph({ spacing: { after: 200 } }));
+            continue;
+          }
+        }
+
+        // Check for markdown table
+        if (line.includes('|') && i + 1 < letterLines.length && /^\|?\s*[-:]+\s*\|/.test(letterLines[i + 1])) {
+          const tableLines: string[] = [];
+          while (i < letterLines.length && letterLines[i].includes('|')) {
+            tableLines.push(letterLines[i]);
+            i++;
+          }
+          
+          if (tableLines.length >= 2) {
+            const headerCells = tableLines[0].split('|').filter(cell => cell.trim() !== '');
+            const bodyRows = tableLines.slice(2).map(row => 
+              row.split('|').filter(cell => cell.trim() !== '')
+            );
+
+            const tableRowsData = [headerCells, ...bodyRows];
+            const tableRows = tableRowsData.map((rowData, rowIndex) => 
+              new TableRow({
+                children: rowData.map(cellText => 
+                  new TableCell({
+                    children: [
+                      new Paragraph({
+                        children: [
+                          new TextRun({
+                            text: cellText.trim(),
+                            bold: rowIndex === 0,
+                            size: 22,
+                          }),
+                        ],
+                      }),
+                    ],
+                    shading: rowIndex === 0 ? { fill: "E0E0E0" } : undefined,
+                  })
+                ),
+              })
+            );
+
+            paragraphs.push(
+              new Table({
+                rows: tableRows,
+                width: { size: 100, type: WidthType.PERCENTAGE },
+              })
+            );
+            
+            paragraphs.push(new Paragraph({ spacing: { after: 200 } }));
+            continue;
+          }
+        }
+
+        // Regular text line
         paragraphs.push(
           new Paragraph({
             children: [
@@ -514,7 +645,8 @@ export const LetterPreview = ({ letter, letterTemplate, onLetterUpdate, onTempla
             spacing: { after: 120 },
           })
         );
-      });
+        i++;
+      }
 
       const doc = new Document({
         sections: [
