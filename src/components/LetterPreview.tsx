@@ -156,30 +156,44 @@ export const LetterPreview = ({ letter, letterTemplate, onLetterUpdate, onTempla
     let y = margin;
     const lineHeight = 6;
 
-    // Set text color based on contrast
-    const setTextColor = (hexColor?: string) => {
+    // Apply letter background color to entire page
+    if (editedTemplate?.letterBackgroundColor) {
+      const bgRgb = hexToRgb(editedTemplate.letterBackgroundColor);
+      if (bgRgb) {
+        doc.setFillColor(bgRgb.r, bgRgb.g, bgRgb.b);
+        doc.rect(0, 0, pageWidth, pageHeight, 'F');
+      }
+    }
+
+    // Set text color based on contrast with background
+    const setTextColorForBg = (hexColor?: string) => {
       const color = getContrastColor(hexColor);
       const rgb = hexToRgb(color);
       if (rgb) doc.setTextColor(rgb.r, rgb.g, rgb.b);
     };
 
-    // Add letterhead background if exists
+    // Add letterhead if exists
     if (editedTemplate && editedTemplate.organizationName) {
       const headerBg = editedTemplate.headerBackgroundColor;
       const style = editedTemplate.letterheadStyle || 'centered';
 
-      // Draw header background for banner style
-      if (style === 'banner' && headerBg) {
+      // Draw header background based on style
+      if (headerBg) {
         const bgRgb = hexToRgb(headerBg);
         if (bgRgb) {
-          doc.setFillColor(bgRgb.r, bgRgb.g, bgRgb.b);
-          doc.rect(0, 0, pageWidth, 50, 'F');
+          if (style === 'banner') {
+            doc.setFillColor(bgRgb.r, bgRgb.g, bgRgb.b);
+            doc.rect(0, 0, pageWidth, 48, 'F');
+          } else if (style === 'centered' || style === 'classic') {
+            doc.setFillColor(bgRgb.r, bgRgb.g, bgRgb.b);
+            doc.rect(0, 0, pageWidth, 55, 'F');
+          }
         }
       }
 
       // Render based on letterhead style
       if (style === 'banner') {
-        setTextColor(headerBg);
+        setTextColorForBg(headerBg);
         
         // Logo on left, text centered
         if (editedTemplate.logo) {
@@ -239,7 +253,8 @@ export const LetterPreview = ({ letter, letterTemplate, onLetterUpdate, onTempla
         y += 20;
 
       } else if (style === 'side-by-side') {
-        doc.setTextColor(0, 0, 0);
+        // Use header color if set, otherwise default blue
+        const primaryColor = headerBg ? hexToRgb(headerBg) : { r: 59, g: 130, b: 246 };
         
         let logoEndX = margin;
         if (editedTemplate.logo) {
@@ -253,7 +268,7 @@ export const LetterPreview = ({ letter, letterTemplate, onLetterUpdate, onTempla
         }
         
         // Vertical line
-        doc.setDrawColor(100, 100, 100);
+        if (primaryColor) doc.setDrawColor(primaryColor.r, primaryColor.g, primaryColor.b);
         doc.setLineWidth(0.3);
         doc.line(logoEndX, y, logoEndX, y + 22);
         
@@ -261,7 +276,7 @@ export const LetterPreview = ({ letter, letterTemplate, onLetterUpdate, onTempla
         const textX = logoEndX + 5;
         doc.setFont("helvetica", "bold");
         doc.setFontSize(14);
-        doc.setTextColor(59, 130, 246); // Primary blue
+        if (primaryColor) doc.setTextColor(primaryColor.r, primaryColor.g, primaryColor.b);
         doc.text(editedTemplate.organizationName, textX, y + 6);
         
         if (editedTemplate.tagline) {
@@ -290,13 +305,14 @@ export const LetterPreview = ({ letter, letterTemplate, onLetterUpdate, onTempla
         y += 30;
         
         // Bottom border
-        doc.setDrawColor(59, 130, 246);
+        if (primaryColor) doc.setDrawColor(primaryColor.r, primaryColor.g, primaryColor.b);
         doc.setLineWidth(1);
         doc.line(margin, y, pageWidth - margin, y);
         y += 8;
 
       } else if (style === 'minimal') {
-        doc.setTextColor(0, 0, 0);
+        const primaryColor = headerBg ? hexToRgb(headerBg) : { r: 0, g: 0, b: 0 };
+        if (primaryColor) doc.setTextColor(primaryColor.r, primaryColor.g, primaryColor.b);
         
         if (editedTemplate.logo) {
           try {
@@ -333,7 +349,13 @@ export const LetterPreview = ({ letter, letterTemplate, onLetterUpdate, onTempla
         y += 8;
 
       } else if (style === 'classic') {
-        doc.setTextColor(0, 0, 0);
+        const primaryColor = headerBg ? hexToRgb(headerBg) : { r: 59, g: 130, b: 246 };
+        
+        if (headerBg) {
+          setTextColorForBg(headerBg);
+        } else {
+          doc.setTextColor(0, 0, 0);
+        }
         
         if (editedTemplate.logo) {
           try {
@@ -347,7 +369,7 @@ export const LetterPreview = ({ letter, letterTemplate, onLetterUpdate, onTempla
         // Centered text with classic styling
         doc.setFont("times", "bold");
         doc.setFontSize(16);
-        doc.setTextColor(59, 130, 246);
+        if (primaryColor) doc.setTextColor(primaryColor.r, primaryColor.g, primaryColor.b);
         const orgName = editedTemplate.organizationName.toUpperCase();
         const orgNameWidth = doc.getTextWidth(orgName);
         doc.text(orgName, (pageWidth - orgNameWidth) / 2, y + 8);
@@ -361,7 +383,7 @@ export const LetterPreview = ({ letter, letterTemplate, onLetterUpdate, onTempla
         }
         
         // Decorative line
-        doc.setDrawColor(59, 130, 246);
+        if (primaryColor) doc.setDrawColor(primaryColor.r, primaryColor.g, primaryColor.b);
         doc.setLineWidth(0.5);
         const lineLen = 30;
         doc.line((pageWidth - lineLen) / 2, y + 18, (pageWidth + lineLen) / 2, y + 18);
@@ -397,7 +419,13 @@ export const LetterPreview = ({ letter, letterTemplate, onLetterUpdate, onTempla
 
       } else {
         // Default: centered style
-        doc.setTextColor(0, 0, 0);
+        const primaryColor = headerBg ? hexToRgb(headerBg) : { r: 59, g: 130, b: 246 };
+        
+        if (headerBg) {
+          setTextColorForBg(headerBg);
+        } else {
+          doc.setTextColor(0, 0, 0);
+        }
         
         if (editedTemplate.logo) {
           try {
@@ -414,7 +442,7 @@ export const LetterPreview = ({ letter, letterTemplate, onLetterUpdate, onTempla
         
         doc.setFont("helvetica", "bold");
         doc.setFontSize(16);
-        doc.setTextColor(59, 130, 246);
+        if (primaryColor) doc.setTextColor(primaryColor.r, primaryColor.g, primaryColor.b);
         const orgName = editedTemplate.organizationName.toUpperCase();
         const orgNameWidth = doc.getTextWidth(orgName);
         doc.text(orgName, (pageWidth - orgNameWidth) / 2, y);
