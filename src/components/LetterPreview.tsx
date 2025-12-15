@@ -124,10 +124,30 @@ export const LetterPreview = ({ letter, letterTemplate, onLetterUpdate, onTempla
     });
   };
 
+  // Helper to convert hex to RGB
+  const hexToRgb = (hex: string): { r: number; g: number; b: number } | null => {
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    return result ? {
+      r: parseInt(result[1], 16),
+      g: parseInt(result[2], 16),
+      b: parseInt(result[3], 16)
+    } : null;
+  };
+
+  // Helper to get contrast color
+  const getContrastColor = (hexColor?: string): string => {
+    if (!hexColor) return '#1f2937';
+    const hex = hexColor.replace('#', '');
+    const r = parseInt(hex.substr(0, 2), 16);
+    const g = parseInt(hex.substr(2, 2), 16);
+    const b = parseInt(hex.substr(4, 2), 16);
+    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+    return luminance > 0.5 ? '#1f2937' : '#ffffff';
+  };
+
   const handleDownloadPDF = async () => {
     const doc = new jsPDF();
     
-    // Set margins
     const margin = 20;
     const pageWidth = doc.internal.pageSize.getWidth();
     const pageHeight = doc.internal.pageSize.getHeight();
@@ -135,86 +155,275 @@ export const LetterPreview = ({ letter, letterTemplate, onLetterUpdate, onTempla
     
     let y = margin;
     const lineHeight = 6;
-    
-    // Add letterhead if exists
+
+    // Set text color based on contrast
+    const setTextColor = (hexColor?: string) => {
+      const color = getContrastColor(hexColor);
+      const rgb = hexToRgb(color);
+      if (rgb) doc.setTextColor(rgb.r, rgb.g, rgb.b);
+    };
+
+    // Add letterhead background if exists
     if (editedTemplate && editedTemplate.organizationName) {
-      // Add logo if exists - centered layout
-      if (editedTemplate.logo) {
-        try {
-          const logoBase64 = await loadImageAsBase64(editedTemplate.logo);
-          const logoHeight = 20;
-          const logoWidth = 20;
-          
-          // Center the logo
-          const logoX = (pageWidth - logoWidth) / 2;
-          doc.addImage(logoBase64, 'PNG', logoX, y, logoWidth, logoHeight);
-          y += logoHeight + 4;
-          
-          // Organization name - centered
-          doc.setFont("helvetica", "bold");
-          doc.setFontSize(16);
-          const orgName = editedTemplate.organizationName.toUpperCase();
-          const orgNameWidth = doc.getTextWidth(orgName);
-          doc.text(orgName, (pageWidth - orgNameWidth) / 2, y);
-          y += 7;
-          
-          // Tagline - centered
-          if (editedTemplate.tagline) {
-            doc.setFont("helvetica", "italic");
-            doc.setFontSize(10);
-            const taglineWidth = doc.getTextWidth(editedTemplate.tagline);
-            doc.text(editedTemplate.tagline, (pageWidth - taglineWidth) / 2, y);
-            y += 6;
-          }
-          
-          // Address - centered
-          if (editedTemplate.address) {
-            doc.setFont("helvetica", "normal");
-            doc.setFontSize(9);
-            const addressOneLine = editedTemplate.address.split('\n').join(' | ');
-            const addressWidth = doc.getTextWidth(addressOneLine);
-            doc.text(addressOneLine, (pageWidth - addressWidth) / 2, y);
-            y += 5;
-          }
-        } catch (error) {
-          console.error('Failed to load logo:', error);
-          // Fallback to text-only header
-          doc.setFont("helvetica", "bold");
-          doc.setFontSize(16);
-          const orgName = editedTemplate.organizationName.toUpperCase();
-          const orgNameWidth = doc.getTextWidth(orgName);
-          doc.text(orgName, (pageWidth - orgNameWidth) / 2, y);
-          y += 8;
-          
-          if (editedTemplate.tagline) {
-            doc.setFont("helvetica", "italic");
-            doc.setFontSize(10);
-            const taglineWidth = doc.getTextWidth(editedTemplate.tagline);
-            doc.text(editedTemplate.tagline, (pageWidth - taglineWidth) / 2, y);
-            y += 6;
-          }
-          
-          if (editedTemplate.address) {
-            doc.setFont("helvetica", "normal");
-            doc.setFontSize(9);
-            const addressOneLine = editedTemplate.address.split('\n').join(' | ');
-            const addressWidth = doc.getTextWidth(addressOneLine);
-            doc.text(addressOneLine, (pageWidth - addressWidth) / 2, y);
-            y += 5;
+      const headerBg = editedTemplate.headerBackgroundColor;
+      const style = editedTemplate.letterheadStyle || 'centered';
+
+      // Draw header background for banner style
+      if (style === 'banner' && headerBg) {
+        const bgRgb = hexToRgb(headerBg);
+        if (bgRgb) {
+          doc.setFillColor(bgRgb.r, bgRgb.g, bgRgb.b);
+          doc.rect(0, 0, pageWidth, 50, 'F');
+        }
+      }
+
+      // Render based on letterhead style
+      if (style === 'banner') {
+        setTextColor(headerBg);
+        
+        // Logo on left, text centered
+        if (editedTemplate.logo) {
+          try {
+            const logoBase64 = await loadImageAsBase64(editedTemplate.logo);
+            doc.addImage(logoBase64, 'PNG', margin, y, 18, 18);
+          } catch (error) {
+            console.error('Failed to load logo:', error);
           }
         }
+        
+        // Organization name centered
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(18);
+        const orgName = editedTemplate.organizationName.toUpperCase();
+        const orgNameWidth = doc.getTextWidth(orgName);
+        doc.text(orgName, (pageWidth - orgNameWidth) / 2, y + 10);
+        
+        if (editedTemplate.tagline) {
+          doc.setFont("helvetica", "italic");
+          doc.setFontSize(9);
+          const taglineWidth = doc.getTextWidth(editedTemplate.tagline);
+          doc.text(editedTemplate.tagline, (pageWidth - taglineWidth) / 2, y + 17);
+        }
+        
+        y += 28;
+        
+        // Sub-banner for address/contact
+        if (headerBg) {
+          const subBgRgb = hexToRgb(headerBg);
+          if (subBgRgb) {
+            doc.setFillColor(Math.max(0, subBgRgb.r - 20), Math.max(0, subBgRgb.g - 20), Math.max(0, subBgRgb.b - 20));
+            doc.rect(0, y - 5, pageWidth, 18, 'F');
+          }
+        }
+        
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(8);
+        
+        if (editedTemplate.address) {
+          const addressOneLine = editedTemplate.address.split('\n').join(' • ');
+          const addressWidth = doc.getTextWidth(addressOneLine);
+          doc.text(addressOneLine, (pageWidth - addressWidth) / 2, y + 2);
+        }
+        
+        const contactParts = [];
+        if (editedTemplate.phone) contactParts.push(`Phone: ${editedTemplate.phone}`);
+        if (editedTemplate.email) contactParts.push(`Email: ${editedTemplate.email}`);
+        if (editedTemplate.website) contactParts.push(`Web: ${editedTemplate.website}`);
+        
+        if (contactParts.length > 0) {
+          const contactText = contactParts.join("  |  ");
+          const contactWidth = doc.getTextWidth(contactText);
+          doc.text(contactText, (pageWidth - contactWidth) / 2, y + 9);
+        }
+        
+        y += 20;
+
+      } else if (style === 'side-by-side') {
+        doc.setTextColor(0, 0, 0);
+        
+        let logoEndX = margin;
+        if (editedTemplate.logo) {
+          try {
+            const logoBase64 = await loadImageAsBase64(editedTemplate.logo);
+            doc.addImage(logoBase64, 'PNG', margin, y, 22, 22);
+            logoEndX = margin + 28;
+          } catch (error) {
+            console.error('Failed to load logo:', error);
+          }
+        }
+        
+        // Vertical line
+        doc.setDrawColor(100, 100, 100);
+        doc.setLineWidth(0.3);
+        doc.line(logoEndX, y, logoEndX, y + 22);
+        
+        // Text next to logo
+        const textX = logoEndX + 5;
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(14);
+        doc.setTextColor(59, 130, 246); // Primary blue
+        doc.text(editedTemplate.organizationName, textX, y + 6);
+        
+        if (editedTemplate.tagline) {
+          doc.setFont("helvetica", "italic");
+          doc.setFontSize(9);
+          doc.setTextColor(100, 100, 100);
+          doc.text(editedTemplate.tagline, textX, y + 12);
+        }
+        
+        if (editedTemplate.address) {
+          doc.setFont("helvetica", "normal");
+          doc.setFontSize(8);
+          doc.setTextColor(100, 100, 100);
+          doc.text(editedTemplate.address.split('\n').join(' | '), textX, y + 17);
+        }
+        
+        const contactParts = [];
+        if (editedTemplate.phone) contactParts.push(`Phone: ${editedTemplate.phone}`);
+        if (editedTemplate.email) contactParts.push(`Email: ${editedTemplate.email}`);
+        if (editedTemplate.website) contactParts.push(`Web: ${editedTemplate.website}`);
+        
+        if (contactParts.length > 0) {
+          doc.text(contactParts.join("  |  "), textX, y + 22);
+        }
+        
+        y += 30;
+        
+        // Bottom border
+        doc.setDrawColor(59, 130, 246);
+        doc.setLineWidth(1);
+        doc.line(margin, y, pageWidth - margin, y);
+        y += 8;
+
+      } else if (style === 'minimal') {
+        doc.setTextColor(0, 0, 0);
+        
+        if (editedTemplate.logo) {
+          try {
+            const logoBase64 = await loadImageAsBase64(editedTemplate.logo);
+            doc.addImage(logoBase64, 'PNG', margin, y, 12, 12);
+          } catch (error) {
+            console.error('Failed to load logo:', error);
+          }
+        }
+        
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(12);
+        doc.text(editedTemplate.organizationName, margin + (editedTemplate.logo ? 16 : 0), y + 8);
+        
+        // Contact on right
+        const contactParts = [];
+        if (editedTemplate.phone) contactParts.push(editedTemplate.phone);
+        if (editedTemplate.email) contactParts.push(editedTemplate.email);
+        if (editedTemplate.website) contactParts.push(editedTemplate.website);
+        
+        if (contactParts.length > 0) {
+          doc.setFont("helvetica", "normal");
+          doc.setFontSize(8);
+          doc.setTextColor(100, 100, 100);
+          const contactText = contactParts.join("  |  ");
+          const contactWidth = doc.getTextWidth(contactText);
+          doc.text(contactText, pageWidth - margin - contactWidth, y + 8);
+        }
+        
+        y += 16;
+        doc.setDrawColor(200, 200, 200);
+        doc.setLineWidth(0.3);
+        doc.line(margin, y, pageWidth - margin, y);
+        y += 8;
+
+      } else if (style === 'classic') {
+        doc.setTextColor(0, 0, 0);
+        
+        if (editedTemplate.logo) {
+          try {
+            const logoBase64 = await loadImageAsBase64(editedTemplate.logo);
+            doc.addImage(logoBase64, 'PNG', margin, y, 16, 16);
+          } catch (error) {
+            console.error('Failed to load logo:', error);
+          }
+        }
+        
+        // Centered text with classic styling
+        doc.setFont("times", "bold");
+        doc.setFontSize(16);
+        doc.setTextColor(59, 130, 246);
+        const orgName = editedTemplate.organizationName.toUpperCase();
+        const orgNameWidth = doc.getTextWidth(orgName);
+        doc.text(orgName, (pageWidth - orgNameWidth) / 2, y + 8);
+        
+        if (editedTemplate.tagline) {
+          doc.setFont("times", "italic");
+          doc.setFontSize(10);
+          doc.setTextColor(100, 100, 100);
+          const taglineWidth = doc.getTextWidth(editedTemplate.tagline);
+          doc.text(editedTemplate.tagline, (pageWidth - taglineWidth) / 2, y + 14);
+        }
+        
+        // Decorative line
+        doc.setDrawColor(59, 130, 246);
+        doc.setLineWidth(0.5);
+        const lineLen = 30;
+        doc.line((pageWidth - lineLen) / 2, y + 18, (pageWidth + lineLen) / 2, y + 18);
+        
+        if (editedTemplate.address) {
+          doc.setFont("times", "normal");
+          doc.setFontSize(9);
+          doc.setTextColor(100, 100, 100);
+          const addressOneLine = editedTemplate.address.split('\n').join(' | ');
+          const addressWidth = doc.getTextWidth(addressOneLine);
+          doc.text(addressOneLine, (pageWidth - addressWidth) / 2, y + 24);
+        }
+        
+        const contactParts = [];
+        if (editedTemplate.phone) contactParts.push(`Phone: ${editedTemplate.phone}`);
+        if (editedTemplate.email) contactParts.push(`Email: ${editedTemplate.email}`);
+        if (editedTemplate.website) contactParts.push(`Web: ${editedTemplate.website}`);
+        
+        if (contactParts.length > 0) {
+          const contactText = contactParts.join("  |  ");
+          const contactWidth = doc.getTextWidth(contactText);
+          doc.text(contactText, (pageWidth - contactWidth) / 2, y + 30);
+        }
+        
+        y += 38;
+        
+        // Double line border
+        doc.setDrawColor(100, 100, 100);
+        doc.setLineWidth(0.3);
+        doc.line(margin, y, pageWidth - margin, y);
+        doc.line(margin, y + 2, pageWidth - margin, y + 2);
+        y += 10;
+
       } else {
-        // No logo - centered text header
+        // Default: centered style
+        doc.setTextColor(0, 0, 0);
+        
+        if (editedTemplate.logo) {
+          try {
+            const logoBase64 = await loadImageAsBase64(editedTemplate.logo);
+            const logoHeight = 20;
+            const logoWidth = 20;
+            const logoX = (pageWidth - logoWidth) / 2;
+            doc.addImage(logoBase64, 'PNG', logoX, y, logoWidth, logoHeight);
+            y += logoHeight + 4;
+          } catch (error) {
+            console.error('Failed to load logo:', error);
+          }
+        }
+        
         doc.setFont("helvetica", "bold");
         doc.setFontSize(16);
+        doc.setTextColor(59, 130, 246);
         const orgName = editedTemplate.organizationName.toUpperCase();
         const orgNameWidth = doc.getTextWidth(orgName);
         doc.text(orgName, (pageWidth - orgNameWidth) / 2, y);
-        y += 8;
+        y += 7;
         
         if (editedTemplate.tagline) {
           doc.setFont("helvetica", "italic");
           doc.setFontSize(10);
+          doc.setTextColor(100, 100, 100);
           const taglineWidth = doc.getTextWidth(editedTemplate.tagline);
           doc.text(editedTemplate.tagline, (pageWidth - taglineWidth) / 2, y);
           y += 6;
@@ -223,34 +432,36 @@ export const LetterPreview = ({ letter, letterTemplate, onLetterUpdate, onTempla
         if (editedTemplate.address) {
           doc.setFont("helvetica", "normal");
           doc.setFontSize(9);
-          const addressOneLine = editedTemplate.address.split('\n').join(' | ');
+          doc.setTextColor(100, 100, 100);
+          const addressOneLine = editedTemplate.address.split('\n').join(' • ');
           const addressWidth = doc.getTextWidth(addressOneLine);
           doc.text(addressOneLine, (pageWidth - addressWidth) / 2, y);
           y += 5;
         }
+        
+        const contactParts = [];
+        if (editedTemplate.phone) contactParts.push(`Phone: ${editedTemplate.phone}`);
+        if (editedTemplate.email) contactParts.push(`Email: ${editedTemplate.email}`);
+        if (editedTemplate.website) contactParts.push(`Web: ${editedTemplate.website}`);
+        
+        if (contactParts.length > 0) {
+          doc.setFont("helvetica", "normal");
+          doc.setFontSize(8);
+          const contactText = contactParts.join("  |  ");
+          const contactWidth = doc.getTextWidth(contactText);
+          doc.text(contactText, (pageWidth - contactWidth) / 2, y);
+          y += 6;
+        }
+        
+        doc.setDrawColor(100, 100, 100);
+        doc.setLineWidth(0.5);
+        doc.line(margin, y, pageWidth - margin, y);
+        y += 10;
       }
-      
-      // Contact info
-      const contactParts = [];
-      if (editedTemplate.phone) contactParts.push(`Phone: ${editedTemplate.phone}`);
-      if (editedTemplate.email) contactParts.push(`Email: ${editedTemplate.email}`);
-      if (editedTemplate.website) contactParts.push(`Web: ${editedTemplate.website}`);
-      
-      if (contactParts.length > 0) {
-        doc.setFont("helvetica", "normal");
-        doc.setFontSize(8);
-        const contactText = contactParts.join("  |  ");
-        const contactWidth = doc.getTextWidth(contactText);
-        doc.text(contactText, (pageWidth - contactWidth) / 2, y);
-        y += 6;
-      }
-      
-      // Separator line
-      doc.setDrawColor(100, 100, 100);
-      doc.setLineWidth(0.5);
-      doc.line(margin, y, pageWidth - margin, y);
-      y += 10;
     }
+
+    // Reset text color for letter body
+    doc.setTextColor(0, 0, 0);
     
     // Parse and render letter content with tables
     const contentLines = editedLetter.split('\n');
@@ -270,11 +481,9 @@ export const LetterPreview = ({ letter, letterTemplate, onLetterUpdate, onTempla
           i++;
         }
         
-        // Extract data rows (lines with |)
         const dataRows = tableLines.filter(l => /^\s*\|.+\|\s*$/.test(l));
         
         if (dataRows.length > 0) {
-          // Render table in PDF
           const headerCells = dataRows[0].split('|').filter(cell => cell.trim() !== '');
           const bodyRows = dataRows.slice(1).map(row => 
             row.split('|').filter(cell => cell.trim() !== '')
@@ -285,14 +494,12 @@ export const LetterPreview = ({ letter, letterTemplate, onLetterUpdate, onTempla
           const cellPadding = 3;
           const rowHeight = 8;
           
-          // Check if table fits on current page
           const tableHeight = (bodyRows.length + 1) * rowHeight;
           if (y + tableHeight > pageHeight - margin) {
             doc.addPage();
             y = margin;
           }
           
-          // Draw header row
           doc.setFillColor(240, 240, 240);
           doc.rect(margin, y, maxWidth, rowHeight, 'F');
           doc.setFont("helvetica", "bold");
@@ -305,7 +512,6 @@ export const LetterPreview = ({ letter, letterTemplate, onLetterUpdate, onTempla
           });
           y += rowHeight;
           
-          // Draw body rows
           doc.setFont("helvetica", "normal");
           bodyRows.forEach((row) => {
             if (y + rowHeight > pageHeight - margin) {
@@ -345,14 +551,12 @@ export const LetterPreview = ({ letter, letterTemplate, onLetterUpdate, onTempla
           const cellPadding = 3;
           const rowHeight = 8;
           
-          // Check if table fits on current page
           const tableHeight = (bodyRows.length + 1) * rowHeight;
           if (y + tableHeight > pageHeight - margin) {
             doc.addPage();
             y = margin;
           }
           
-          // Draw header row
           doc.setFillColor(240, 240, 240);
           doc.rect(margin, y, maxWidth, rowHeight, 'F');
           doc.setFont("helvetica", "bold");
@@ -365,7 +569,6 @@ export const LetterPreview = ({ letter, letterTemplate, onLetterUpdate, onTempla
           });
           y += rowHeight;
           
-          // Draw body rows
           doc.setFont("helvetica", "normal");
           bodyRows.forEach((row) => {
             if (y + rowHeight > pageHeight - margin) {
@@ -416,25 +619,273 @@ export const LetterPreview = ({ letter, letterTemplate, onLetterUpdate, onTempla
   const handleDownloadWord = async () => {
     try {
       const paragraphs: (Paragraph | Table)[] = [];
+      const style = editedTemplate?.letterheadStyle || 'centered';
 
       // Add letterhead if exists
       if (editedTemplate && editedTemplate.organizationName) {
-        // Add logo if exists
+        let logoBuffer: ArrayBuffer | null = null;
+        
+        // Load logo if exists
         if (editedTemplate.logo) {
           try {
             const response = await fetch(editedTemplate.logo);
             const blob = await response.blob();
-            const arrayBuffer = await blob.arrayBuffer();
-            
+            logoBuffer = await blob.arrayBuffer();
+          } catch (error) {
+            console.error('Failed to load logo for Word:', error);
+          }
+        }
+
+        // Render based on letterhead style
+        if (style === 'banner') {
+          // Banner style - logo left, text centered
+          if (logoBuffer) {
             paragraphs.push(
               new Paragraph({
                 children: [
                   new ImageRun({
-                    data: arrayBuffer,
-                    transformation: {
-                      width: 80,
-                      height: 80,
-                    },
+                    data: logoBuffer,
+                    transformation: { width: 70, height: 70 },
+                    type: 'png',
+                  }),
+                ],
+                alignment: AlignmentType.LEFT,
+                spacing: { after: 100 },
+              })
+            );
+          }
+          
+          paragraphs.push(
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: editedTemplate.organizationName.toUpperCase(),
+                  bold: true,
+                  size: 36,
+                  color: "FFFFFF",
+                }),
+              ],
+              alignment: AlignmentType.CENTER,
+              shading: { fill: editedTemplate.headerBackgroundColor?.replace('#', '') || "3B82F6" },
+              spacing: { after: 50 },
+            })
+          );
+          
+          if (editedTemplate.tagline) {
+            paragraphs.push(
+              new Paragraph({
+                children: [
+                  new TextRun({
+                    text: editedTemplate.tagline,
+                    italics: true,
+                    size: 18,
+                    color: "FFFFFF",
+                  }),
+                ],
+                alignment: AlignmentType.CENTER,
+                shading: { fill: editedTemplate.headerBackgroundColor?.replace('#', '') || "3B82F6" },
+                spacing: { after: 100 },
+              })
+            );
+          }
+
+          if (editedTemplate.address) {
+            paragraphs.push(
+              new Paragraph({
+                children: [
+                  new TextRun({
+                    text: editedTemplate.address.split('\n').join(' • '),
+                    size: 18,
+                  }),
+                ],
+                alignment: AlignmentType.CENTER,
+                spacing: { after: 50 },
+              })
+            );
+          }
+
+        } else if (style === 'side-by-side') {
+          // Side by side - logo left with text to the right
+          if (logoBuffer) {
+            paragraphs.push(
+              new Paragraph({
+                children: [
+                  new ImageRun({
+                    data: logoBuffer,
+                    transformation: { width: 80, height: 80 },
+                    type: 'png',
+                  }),
+                ],
+                alignment: AlignmentType.LEFT,
+                spacing: { after: 100 },
+              })
+            );
+          }
+          
+          paragraphs.push(
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: editedTemplate.organizationName,
+                  bold: true,
+                  size: 28,
+                  color: "3B82F6",
+                }),
+              ],
+              alignment: AlignmentType.LEFT,
+              spacing: { after: 50 },
+            })
+          );
+          
+          if (editedTemplate.tagline) {
+            paragraphs.push(
+              new Paragraph({
+                children: [
+                  new TextRun({
+                    text: editedTemplate.tagline,
+                    italics: true,
+                    size: 18,
+                    color: "666666",
+                  }),
+                ],
+                alignment: AlignmentType.LEFT,
+                spacing: { after: 50 },
+              })
+            );
+          }
+
+          if (editedTemplate.address) {
+            paragraphs.push(
+              new Paragraph({
+                children: [
+                  new TextRun({
+                    text: editedTemplate.address.split('\n').join(' | '),
+                    size: 16,
+                    color: "666666",
+                  }),
+                ],
+                alignment: AlignmentType.LEFT,
+                spacing: { after: 50 },
+              })
+            );
+          }
+
+        } else if (style === 'minimal') {
+          // Minimal - compact header
+          if (logoBuffer) {
+            paragraphs.push(
+              new Paragraph({
+                children: [
+                  new ImageRun({
+                    data: logoBuffer,
+                    transformation: { width: 40, height: 40 },
+                    type: 'png',
+                  }),
+                  new TextRun({ text: "   " }),
+                  new TextRun({
+                    text: editedTemplate.organizationName,
+                    bold: true,
+                    size: 24,
+                  }),
+                ],
+                alignment: AlignmentType.LEFT,
+                spacing: { after: 100 },
+              })
+            );
+          } else {
+            paragraphs.push(
+              new Paragraph({
+                children: [
+                  new TextRun({
+                    text: editedTemplate.organizationName,
+                    bold: true,
+                    size: 24,
+                  }),
+                ],
+                alignment: AlignmentType.LEFT,
+                spacing: { after: 100 },
+              })
+            );
+          }
+
+        } else if (style === 'classic') {
+          // Classic - formal with serif font
+          if (logoBuffer) {
+            paragraphs.push(
+              new Paragraph({
+                children: [
+                  new ImageRun({
+                    data: logoBuffer,
+                    transformation: { width: 60, height: 60 },
+                    type: 'png',
+                  }),
+                ],
+                alignment: AlignmentType.LEFT,
+                spacing: { after: 100 },
+              })
+            );
+          }
+          
+          paragraphs.push(
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: editedTemplate.organizationName.toUpperCase(),
+                  bold: true,
+                  size: 32,
+                  font: "Times New Roman",
+                  color: "3B82F6",
+                }),
+              ],
+              alignment: AlignmentType.CENTER,
+              spacing: { after: 50 },
+            })
+          );
+          
+          if (editedTemplate.tagline) {
+            paragraphs.push(
+              new Paragraph({
+                children: [
+                  new TextRun({
+                    text: editedTemplate.tagline,
+                    italics: true,
+                    size: 20,
+                    font: "Times New Roman",
+                    color: "666666",
+                  }),
+                ],
+                alignment: AlignmentType.CENTER,
+                spacing: { after: 100 },
+              })
+            );
+          }
+
+          if (editedTemplate.address) {
+            paragraphs.push(
+              new Paragraph({
+                children: [
+                  new TextRun({
+                    text: editedTemplate.address.split('\n').join(' | '),
+                    size: 18,
+                    font: "Times New Roman",
+                    color: "666666",
+                  }),
+                ],
+                alignment: AlignmentType.CENTER,
+                spacing: { after: 50 },
+              })
+            );
+          }
+
+        } else {
+          // Default: centered style
+          if (logoBuffer) {
+            paragraphs.push(
+              new Paragraph({
+                children: [
+                  new ImageRun({
+                    data: logoBuffer,
+                    transformation: { width: 80, height: 80 },
                     type: 'png',
                   }),
                 ],
@@ -442,56 +893,58 @@ export const LetterPreview = ({ letter, letterTemplate, onLetterUpdate, onTempla
                 spacing: { after: 200 },
               })
             );
-          } catch (error) {
-            console.error('Failed to load logo for Word:', error);
           }
-        }
 
-        paragraphs.push(
-          new Paragraph({
-            children: [
-              new TextRun({
-                text: editedTemplate.organizationName.toUpperCase(),
-                bold: true,
-                size: 32,
-              }),
-            ],
-            alignment: AlignmentType.CENTER,
-            spacing: { after: 100 },
-          })
-        );
-
-        if (editedTemplate.tagline) {
           paragraphs.push(
             new Paragraph({
               children: [
                 new TextRun({
-                  text: editedTemplate.tagline,
-                  italics: true,
-                  size: 20,
+                  text: editedTemplate.organizationName.toUpperCase(),
+                  bold: true,
+                  size: 32,
+                  color: "3B82F6",
                 }),
               ],
               alignment: AlignmentType.CENTER,
               spacing: { after: 100 },
             })
           );
+
+          if (editedTemplate.tagline) {
+            paragraphs.push(
+              new Paragraph({
+                children: [
+                  new TextRun({
+                    text: editedTemplate.tagline,
+                    italics: true,
+                    size: 20,
+                    color: "666666",
+                  }),
+                ],
+                alignment: AlignmentType.CENTER,
+                spacing: { after: 100 },
+              })
+            );
+          }
+
+          if (editedTemplate.address) {
+            paragraphs.push(
+              new Paragraph({
+                children: [
+                  new TextRun({
+                    text: editedTemplate.address.split('\n').join(' • '),
+                    size: 18,
+                    color: "666666",
+                  }),
+                ],
+                alignment: AlignmentType.CENTER,
+                spacing: { after: 50 },
+              })
+            );
+          }
         }
 
-        if (editedTemplate.address) {
-          paragraphs.push(
-            new Paragraph({
-              children: [
-                new TextRun({
-                  text: editedTemplate.address.split('\n').join(' | '),
-                  size: 20,
-                }),
-              ],
-              alignment: AlignmentType.CENTER,
-              spacing: { after: 50 },
-            })
-          );
-        }
-
+        // Contact info for all styles
         const contactParts = [];
         if (editedTemplate.phone) contactParts.push(`Phone: ${editedTemplate.phone}`);
         if (editedTemplate.email) contactParts.push(`Email: ${editedTemplate.email}`);
@@ -503,10 +956,11 @@ export const LetterPreview = ({ letter, letterTemplate, onLetterUpdate, onTempla
               children: [
                 new TextRun({
                   text: contactParts.join("  |  "),
-                  size: 18,
+                  size: 16,
+                  color: "666666",
                 }),
               ],
-              alignment: AlignmentType.CENTER,
+              alignment: style === 'side-by-side' || style === 'minimal' ? AlignmentType.LEFT : AlignmentType.CENTER,
               spacing: { after: 200 },
             })
           );
@@ -519,6 +973,7 @@ export const LetterPreview = ({ letter, letterTemplate, onLetterUpdate, onTempla
               new TextRun({
                 text: "─".repeat(80),
                 size: 20,
+                color: "CCCCCC",
               }),
             ],
             alignment: AlignmentType.CENTER,
