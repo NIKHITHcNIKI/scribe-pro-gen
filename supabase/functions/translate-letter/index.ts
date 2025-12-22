@@ -1,9 +1,41 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
+
+// Allowed target languages
+const ALLOWED_LANGUAGES = [
+  'Spanish', 'French', 'German', 'Italian', 'Portuguese', 
+  'Chinese', 'Japanese', 'Arabic', 'Hindi', 'Russian',
+  'Dutch', 'Korean', 'Turkish', 'Polish', 'Swedish'
+] as const;
+
+// Input validation
+function validateLetter(value: unknown): string {
+  if (typeof value !== 'string') {
+    throw new Error('letter must be a string');
+  }
+  if (value.length < 1) {
+    throw new Error('letter cannot be empty');
+  }
+  if (value.length > 20000) {
+    throw new Error('letter must be at most 20000 characters');
+  }
+  return value;
+}
+
+function validateTargetLanguage(value: unknown): string {
+  if (typeof value !== 'string') {
+    throw new Error('targetLanguage must be a string');
+  }
+  if (!ALLOWED_LANGUAGES.includes(value as typeof ALLOWED_LANGUAGES[number])) {
+    throw new Error(`targetLanguage must be one of: ${ALLOWED_LANGUAGES.join(', ')}`);
+  }
+  return value;
+}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -11,14 +43,39 @@ serve(async (req) => {
   }
 
   try {
-    const { letter, targetLanguage } = await req.json();
-
-    if (!letter || !targetLanguage) {
+    // Authentication check
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      console.error('No authorization header provided');
       return new Response(
-        JSON.stringify({ error: "Letter and target language are required" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ error: 'Unauthorized - Please log in to translate letters' }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_ANON_KEY')!,
+      { global: { headers: { Authorization: authHeader } } }
+    );
+
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+    if (authError || !user) {
+      console.error('Authentication failed:', authError?.message);
+      return new Response(
+        JSON.stringify({ error: 'Invalid authentication - Please log in again' }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    console.log('Authenticated user:', user.id);
+
+    // Parse and validate input
+    const body = await req.json();
+    const letter = validateLetter(body.letter);
+    const targetLanguage = validateTargetLanguage(body.targetLanguage);
+
+    console.log('Translating letter to:', targetLanguage, 'for user:', user.id);
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
@@ -70,6 +127,8 @@ serve(async (req) => {
     if (!translatedLetter) {
       throw new Error("No translation received from AI");
     }
+
+    console.log('Letter translated successfully for user:', user.id);
 
     return new Response(
       JSON.stringify({ translatedLetter }),

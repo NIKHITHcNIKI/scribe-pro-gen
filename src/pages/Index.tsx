@@ -1,15 +1,26 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Hero } from "@/components/Hero";
 import { LetterForm } from "@/components/LetterForm";
 import { LetterPreview } from "@/components/LetterPreview";
-import { FileText } from "lucide-react";
+import { FileText, LogOut, Loader2 } from "lucide-react";
 import { LetterTemplate } from "@/components/LetterTemplates";
+import { useAuth } from "@/hooks/useAuth";
+import { Button } from "@/components/ui/button";
 
 const Index = () => {
   const [generatedLetter, setGeneratedLetter] = useState<string>("");
   const [letterTemplate, setLetterTemplate] = useState<LetterTemplate | null>(null);
   const [formKey, setFormKey] = useState(0);
   const formRef = useRef<HTMLDivElement>(null);
+  const { user, isLoading, signOut } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!isLoading && !user) {
+      navigate("/auth");
+    }
+  }, [user, isLoading, navigate]);
 
   const handleGetStarted = () => {
     formRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -35,6 +46,23 @@ const Index = () => {
     formRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
+  const handleSignOut = async () => {
+    await signOut();
+    navigate("/auth");
+  };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return null;
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-50">
@@ -47,9 +75,15 @@ const Index = () => {
               LetterGen
             </h1>
           </div>
-          <p className="text-sm text-muted-foreground hidden sm:block">
-            Professional AI-Powered Letter Generation
-          </p>
+          <div className="flex items-center gap-4">
+            <span className="text-sm text-muted-foreground hidden sm:block">
+              {user.email}
+            </span>
+            <Button variant="outline" size="sm" onClick={handleSignOut}>
+              <LogOut className="w-4 h-4 mr-2" />
+              Sign Out
+            </Button>
+          </div>
         </div>
       </header>
 

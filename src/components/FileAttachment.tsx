@@ -4,12 +4,14 @@ import { Card } from "@/components/ui/card";
 import { Paperclip, X, FileText, Image, File, Upload } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 
 export interface AttachedFile {
   name: string;
   size: number;
   type: string;
   url: string;
+  path: string;
 }
 
 interface FileAttachmentProps {
@@ -36,6 +38,7 @@ export const FileAttachment = ({ onFilesChange }: FileAttachmentProps) => {
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+  const { user } = useAuth();
 
   const getFileIcon = (type: string) => {
     if (type.startsWith('image/')) return <Image className="w-4 h-4" />;
@@ -49,9 +52,31 @@ export const FileAttachment = ({ onFilesChange }: FileAttachmentProps) => {
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
 
+  const getSignedUrl = async (path: string): Promise<string | null> => {
+    const { data, error } = await supabase.storage
+      .from('letter-attachments')
+      .createSignedUrl(path, 3600); // 1 hour expiry
+
+    if (error) {
+      console.error('Error creating signed URL:', error);
+      return null;
+    }
+
+    return data.signedUrl;
+  };
+
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
+
+    if (!user) {
+      toast({
+        title: "Authentication required",
+        description: "Please sign in to upload files",
+        variant: "destructive",
+      });
+      return;
+    }
 
     setIsUploading(true);
     const newFiles: AttachedFile[] = [];
@@ -78,22 +103,27 @@ export const FileAttachment = ({ onFilesChange }: FileAttachmentProps) => {
       }
 
       try {
-        const fileName = `${Date.now()}-${file.name}`;
+        // Store files in user-specific folder for proper RLS
+        const fileName = `${user.id}/${Date.now()}-${file.name}`;
         const { data, error } = await supabase.storage
           .from('letter-attachments')
           .upload(fileName, file);
 
         if (error) throw error;
 
-        const { data: urlData } = supabase.storage
-          .from('letter-attachments')
-          .getPublicUrl(data.path);
+        // Get a signed URL instead of public URL
+        const signedUrl = await getSignedUrl(data.path);
+
+        if (!signedUrl) {
+          throw new Error('Failed to get signed URL');
+        }
 
         newFiles.push({
           name: file.name,
           size: file.size,
           type: file.type,
-          url: urlData.publicUrl,
+          url: signedUrl,
+          path: data.path,
         });
       } catch (error) {
         console.error('Upload error:', error);
@@ -121,7 +151,20 @@ export const FileAttachment = ({ onFilesChange }: FileAttachmentProps) => {
     }
   };
 
-  const removeFile = (index: number) => {
+  const removeFile = async (index: number) => {
+    const fileToRemove = attachedFiles[index];
+    
+    // Try to delete from storage
+    if (fileToRemove.path) {
+      try {
+        await supabase.storage
+          .from('letter-attachments')
+          .remove([fileToRemove.path]);
+      } catch (error) {
+        console.error('Error removing file from storage:', error);
+      }
+    }
+
     const updatedFiles = attachedFiles.filter((_, i) => i !== index);
     setAttachedFiles(updatedFiles);
     onFilesChange(updatedFiles);
@@ -142,7 +185,7 @@ export const FileAttachment = ({ onFilesChange }: FileAttachmentProps) => {
           type="button"
           variant="outline"
           onClick={() => fileInputRef.current?.click()}
-          disabled={isUploading}
+          disabled={isUploading || !user}
           className="shadow-soft hover:shadow-medium transition-all"
         >
           {isUploading ? (
