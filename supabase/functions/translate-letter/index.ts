@@ -6,11 +6,12 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Allowed target languages
+// Allowed target languages (synced with frontend LetterPreview.tsx)
 const ALLOWED_LANGUAGES = [
-  'Spanish', 'French', 'German', 'Italian', 'Portuguese', 
-  'Chinese', 'Japanese', 'Arabic', 'Hindi', 'Russian',
-  'Dutch', 'Korean', 'Turkish', 'Polish', 'Swedish'
+  'English', 'Hindi', 'Kannada', 'Telugu', 'Malayalam', 'Tamil',
+  'Bengali', 'Marathi', 'Gujarati', 'Punjabi', 'Urdu',
+  'Spanish', 'French', 'German', 'Italian', 'Portuguese',
+  'Chinese', 'Japanese', 'Korean', 'Arabic', 'Russian'
 ] as const;
 
 // Input validation
