@@ -116,7 +116,39 @@ All colors MUST be HSL.
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply text-foreground;
+    background: linear-gradient(-45deg, 
+      hsl(210 40% 98%), 
+      hsl(270 30% 96%), 
+      hsl(330 30% 96%), 
+      hsl(200 40% 96%)
+    );
+    background-size: 400% 400%;
+    animation: gradient-shift 15s ease infinite;
+    min-height: 100vh;
+  }
+
+  .dark body {
+    background: linear-gradient(-45deg, 
+      hsl(222 47% 8%), 
+      hsl(270 30% 10%), 
+      hsl(330 30% 10%), 
+      hsl(200 40% 10%)
+    );
+    background-size: 400% 400%;
+    animation: gradient-shift 15s ease infinite;
+  }
+}
+
+@keyframes gradient-shift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
   }
 }
 
