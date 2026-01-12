@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Hero } from "@/components/Hero";
 import { LetterForm } from "@/components/LetterForm";
 import { LetterPreview } from "@/components/LetterPreview";
+import { FloatingParticles } from "@/components/FloatingParticles";
 import { FileText, LogOut, Loader2, Sparkles } from "lucide-react";
 import { LetterTemplate } from "@/components/LetterTemplates";
 import { useAuth } from "@/hooks/useAuth";
@@ -69,8 +70,8 @@ const Index = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
+    <div className="min-h-screen relative">
+      <FloatingParticles />
       <header className="border-b border-border/50 glass sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3 group cursor-pointer">

@@ -152,6 +152,30 @@ All colors MUST be HSL.
   }
 }
 
+/* Floating particle animation */
+@keyframes particle-float {
+  0%, 100% {
+    transform: translate(0, 0) rotate(0deg);
+    opacity: 0.6;
+  }
+  25% {
+    transform: translate(30px, -50px) rotate(90deg);
+    opacity: 1;
+  }
+  50% {
+    transform: translate(-20px, -100px) rotate(180deg);
+    opacity: 0.8;
+  }
+  75% {
+    transform: translate(40px, -50px) rotate(270deg);
+    opacity: 1;
+  }
+}
+
+.animate-particle {
+  animation: particle-float linear infinite;
+}
+
 /* Custom animations */
 @keyframes float {
   0%, 100% { transform: translateY(0px); }
@@ -180,6 +204,28 @@ All colors MUST be HSL.
   background: linear-gradient(90deg, transparent 0%, hsl(262 83% 58% / 0.1) 50%, transparent 100%);
   background-size: 200% 100%;
   animation: shimmer 2s linear infinite;
+}
+
+/* Glass morphism effect */
+.glass {
+  background: var(--gradient-glass);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+/* Hover lift effect */
+.hover-lift {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.hover-lift:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-strong);
+}
+
+/* Z-index for particles behind content */
+.-z-5 {
+  z-index: -5;
 }
 
 /* Glass morphism effect */
