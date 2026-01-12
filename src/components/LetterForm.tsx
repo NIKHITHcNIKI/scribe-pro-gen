@@ -111,8 +111,8 @@ export const LetterForm = ({ onLetterGenerated }: LetterFormProps) => {
   };
 
   return (
-    <Card className="p-8 shadow-medium">
-      <form onSubmit={handleSubmit} className="space-y-6">
+    <Card className="p-8 glass border-border/50 shadow-strong hover:shadow-glow transition-all duration-500">
+      <form onSubmit={handleSubmit} className="space-y-8">
         <LetterTemplates onTemplateChange={setLetterTemplate} />
 
         <div className="grid md:grid-cols-2 gap-6">
@@ -262,7 +262,7 @@ export const LetterForm = ({ onLetterGenerated }: LetterFormProps) => {
         <Button
           type="submit"
           size="lg"
-          className="w-full text-lg py-6 shadow-medium hover:shadow-strong transition-all"
+          className="w-full text-lg py-7 bg-gradient-primary hover:opacity-90 shadow-medium hover:shadow-glow transition-all duration-300 group"
           disabled={isLoading}
         >
           {isLoading ? (
@@ -272,7 +272,7 @@ export const LetterForm = ({ onLetterGenerated }: LetterFormProps) => {
             </>
           ) : (
             <>
-              <Sparkles className="w-5 h-5 mr-2" />
+              <Sparkles className="w-5 h-5 mr-2 group-hover:scale-125 transition-transform" />
               Generate Letter
             </>
           )}

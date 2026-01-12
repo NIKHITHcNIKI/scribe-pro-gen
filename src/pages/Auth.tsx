@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Mail, Lock, Loader2, FileText } from "lucide-react";
+import { Mail, Lock, Loader2, FileText, Sparkles, ArrowRight } from "lucide-react";
 
 const Auth = () => {
   const [email, setEmail] = useState("");
@@ -18,7 +18,6 @@ const Auth = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (session?.user) {
         navigate("/");
@@ -26,7 +25,6 @@ const Auth = () => {
       setCheckingAuth(false);
     });
 
-    // Check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
         navigate("/");
@@ -149,122 +147,160 @@ const Auth = () => {
 
   if (checkingAuth) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center space-y-4">
+          <div className="w-16 h-16 rounded-2xl bg-gradient-primary flex items-center justify-center mx-auto animate-pulse-glow">
+            <FileText className="w-8 h-8 text-primary-foreground" />
+          </div>
+          <Loader2 className="h-6 w-6 animate-spin text-primary mx-auto" />
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
-      <Card className="w-full max-w-md shadow-xl">
-        <CardHeader className="text-center space-y-2">
-          <div className="flex justify-center mb-4">
-            <div className="bg-primary/10 p-3 rounded-full">
-              <FileText className="h-8 w-8 text-primary" />
+    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
+      {/* Animated background */}
+      <div className="absolute inset-0 bg-gradient-hero -z-10" />
+      <div className="absolute top-20 left-10 w-72 h-72 bg-primary/20 rounded-full blur-3xl animate-pulse" />
+      <div className="absolute bottom-20 right-10 w-96 h-96 bg-accent/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
+      
+      <Card className="w-full max-w-md glass border-border/50 shadow-strong">
+        <CardHeader className="text-center space-y-4 pb-2">
+          <div className="flex justify-center mb-2">
+            <div className="w-16 h-16 rounded-2xl bg-gradient-primary flex items-center justify-center shadow-medium animate-float">
+              <FileText className="h-8 w-8 text-primary-foreground" />
             </div>
           </div>
-          <CardTitle className="text-2xl font-bold">Letter Generator</CardTitle>
-          <CardDescription>
-            Sign in to create professional letters with AI
+          <CardTitle className="text-3xl font-bold bg-gradient-primary bg-clip-text text-transparent">
+            LetterGen
+          </CardTitle>
+          <CardDescription className="text-base flex items-center justify-center gap-2">
+            <Sparkles className="w-4 h-4 text-primary" />
+            Create professional letters with AI
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-6">
           <Tabs defaultValue="signin" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 mb-6">
-              <TabsTrigger value="signin">Sign In</TabsTrigger>
-              <TabsTrigger value="signup">Sign Up</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-2 mb-8 p-1 bg-secondary">
+              <TabsTrigger 
+                value="signin" 
+                className="data-[state=active]:bg-gradient-primary data-[state=active]:text-primary-foreground transition-all duration-300"
+              >
+                Sign In
+              </TabsTrigger>
+              <TabsTrigger 
+                value="signup"
+                className="data-[state=active]:bg-gradient-primary data-[state=active]:text-primary-foreground transition-all duration-300"
+              >
+                Sign Up
+              </TabsTrigger>
             </TabsList>
             
             <TabsContent value="signin">
-              <form onSubmit={handleSignIn} className="space-y-4">
+              <form onSubmit={handleSignIn} className="space-y-5">
                 <div className="space-y-2">
-                  <Label htmlFor="signin-email">Email</Label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Label htmlFor="signin-email" className="text-sm font-medium">Email</Label>
+                  <div className="relative group">
+                    <Mail className="absolute left-3 top-3 h-5 w-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
                     <Input
                       id="signin-email"
                       type="email"
                       placeholder="you@example.com"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      className="pl-10"
+                      className="pl-11 h-12 border-2 focus:border-primary transition-all duration-300"
                       required
                     />
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="signin-password">Password</Label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Label htmlFor="signin-password" className="text-sm font-medium">Password</Label>
+                  <div className="relative group">
+                    <Lock className="absolute left-3 top-3 h-5 w-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
                     <Input
                       id="signin-password"
                       type="password"
                       placeholder="••••••••"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      className="pl-10"
+                      className="pl-11 h-12 border-2 focus:border-primary transition-all duration-300"
                       required
                     />
                   </div>
                 </div>
-                <Button type="submit" className="w-full" disabled={isLoading}>
+                <Button 
+                  type="submit" 
+                  className="w-full h-12 bg-gradient-primary hover:opacity-90 shadow-medium hover:shadow-strong transition-all duration-300 group" 
+                  disabled={isLoading}
+                >
                   {isLoading ? (
                     <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                       Signing in...
                     </>
                   ) : (
-                    "Sign In"
+                    <>
+                      Sign In
+                      <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
+                    </>
                   )}
                 </Button>
               </form>
             </TabsContent>
             
             <TabsContent value="signup">
-              <form onSubmit={handleSignUp} className="space-y-4">
+              <form onSubmit={handleSignUp} className="space-y-5">
                 <div className="space-y-2">
-                  <Label htmlFor="signup-email">Email</Label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Label htmlFor="signup-email" className="text-sm font-medium">Email</Label>
+                  <div className="relative group">
+                    <Mail className="absolute left-3 top-3 h-5 w-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
                     <Input
                       id="signup-email"
                       type="email"
                       placeholder="you@example.com"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      className="pl-10"
+                      className="pl-11 h-12 border-2 focus:border-primary transition-all duration-300"
                       required
                     />
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="signup-password">Password</Label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Label htmlFor="signup-password" className="text-sm font-medium">Password</Label>
+                  <div className="relative group">
+                    <Lock className="absolute left-3 top-3 h-5 w-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
                     <Input
                       id="signup-password"
                       type="password"
                       placeholder="••••••••"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      className="pl-10"
+                      className="pl-11 h-12 border-2 focus:border-primary transition-all duration-300"
                       required
                       minLength={6}
                     />
                   </div>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-xs text-muted-foreground flex items-center gap-1">
+                    <Lock className="w-3 h-3" />
                     Password must be at least 6 characters
                   </p>
                 </div>
-                <Button type="submit" className="w-full" disabled={isLoading}>
+                <Button 
+                  type="submit" 
+                  className="w-full h-12 bg-gradient-primary hover:opacity-90 shadow-medium hover:shadow-strong transition-all duration-300 group" 
+                  disabled={isLoading}
+                >
                   {isLoading ? (
                     <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                       Creating account...
                     </>
                   ) : (
-                    "Create Account"
+                    <>
+                      Create Account
+                      <Sparkles className="ml-2 h-5 w-5 group-hover:scale-125 transition-transform" />
+                    </>
                   )}
                 </Button>
               </form>
