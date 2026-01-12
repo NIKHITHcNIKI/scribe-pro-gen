@@ -67,6 +67,7 @@ export default {
         'soft': 'var(--shadow-soft)',
         'medium': 'var(--shadow-medium)',
         'strong': 'var(--shadow-strong)',
+        'glow': 'var(--shadow-glow)',
       },
       transitionProperty: {
         'smooth': 'var(--transition-smooth)',
