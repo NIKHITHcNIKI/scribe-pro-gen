@@ -368,11 +368,23 @@ export const LetterTemplates = ({ onTemplateChange }: LetterTemplatesProps) => {
             <div className="flex items-center gap-4">
               {customTemplate.logo ? (
                 <div className="relative">
-                  <img 
-                    src={customTemplate.logo} 
-                    alt="Logo" 
-                    className="h-16 w-auto object-contain rounded border"
-                  />
+                 <div className="h-16 w-16 flex items-center justify-center rounded border bg-muted/30 overflow-hidden">
+                   <img 
+                     src={customTemplate.logo} 
+                     alt="Logo" 
+                     className="h-full w-full object-contain"
+                     onError={(e) => {
+                       const target = e.target as HTMLImageElement;
+                       target.style.display = 'none';
+                       target.parentElement?.classList.add('logo-error');
+                     }}
+                     onLoad={(e) => {
+                       const target = e.target as HTMLImageElement;
+                       target.style.display = 'block';
+                       target.parentElement?.classList.remove('logo-error');
+                     }}
+                   />
+                 </div>
                   <Button
                     type="button"
                     variant="destructive"
