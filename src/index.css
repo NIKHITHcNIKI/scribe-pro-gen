@@ -223,6 +223,19 @@ All colors MUST be HSL.
   box-shadow: var(--shadow-strong);
 }
 
+/* Logo error fallback */
+.logo-error {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.logo-error::after {
+  content: 'Logo';
+  font-size: 0.75rem;
+  color: hsl(var(--muted-foreground));
+}
+
 /* Z-index for particles behind content */
 .-z-5 {
   z-index: -5;
