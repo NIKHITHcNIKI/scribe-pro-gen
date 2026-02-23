@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Building2, GraduationCap, Briefcase, User, Hospital, Scale, Landmark, Upload, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 
 export type LetterheadStyle = "banner" | "side-by-side" | "centered" | "minimal" | "classic";
 
@@ -146,6 +147,7 @@ export const LetterTemplates = ({ onTemplateChange }: LetterTemplatesProps) => {
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+  const { user } = useAuth();
 
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -163,18 +165,25 @@ export const LetterTemplates = ({ onTemplateChange }: LetterTemplatesProps) => {
 
     setIsUploading(true);
     try {
-      const fileName = `logo-${Date.now()}-${file.name}`;
+      if (!user) {
+        toast({ title: "Authentication required", description: "Please sign in to upload a logo", variant: "destructive" });
+        return;
+      }
+      const fileName = `${user.id}/logo-${Date.now()}-${file.name}`;
       const { data, error } = await supabase.storage
         .from('letter-attachments')
         .upload(fileName, file);
 
       if (error) throw error;
 
-      const { data: urlData } = supabase.storage
+      // Use signed URL instead of public URL
+      const { data: signedData, error: signedError } = await supabase.storage
         .from('letter-attachments')
-        .getPublicUrl(data.path);
+        .createSignedUrl(data.path, 3600);
 
-      const updated = { ...customTemplate, logo: urlData.publicUrl };
+      if (signedError || !signedData?.signedUrl) throw signedError || new Error('Failed to get signed URL');
+
+      const updated = { ...customTemplate, logo: signedData.signedUrl };
       setCustomTemplate(updated);
       if (selectedTemplate !== "none") {
         onTemplateChange(updated);
